@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>REMAX Progress Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --blue: #003DA5; --navy: #003DA5; --red: #E2001A;
+      --bg: #F0F2F5; --card: #ffffff; --text: #1A1F36;
+      --muted: #6B7280; --border: #DDE1EA;
+      --green: #15803D; --orange: #D97706; --grey: #C4CAD4;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:Gotham,"Montserrat",sans-serif; background:var(--bg); color:var(--text); }
+
+    /* ── LOGIN ── */
+    #loginScreen { min-height:100vh; display:flex; align-items:center; justify-content:center; background:#F2EDE4; position:relative; overflow:hidden; }
+    #loginScreen::before { content:''; position:absolute; top:0; left:0; right:0; height:18px; background:linear-gradient(to right,#6B0010 50%,#E8000C 50%); }
+    #loginScreen::after  { content:''; position:absolute; bottom:0; left:0; right:0; height:18px; background:linear-gradient(to right,#14172B 50%,#1D56F5 50%); }
+    .login-card { background:white; border-radius:16px; padding:44px 40px 36px; width:100%; max-width:400px; box-shadow:0 8px 40px rgba(0,61,165,.13); position:relative; z-index:1; }
+    .login-logo { font-weight:900; font-size:32px; color:#0D0D0D; letter-spacing:-1px; margin-bottom:2px; }
+    .login-sub  { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:2px; color:#6B0010; margin-bottom:28px; }
+    .login-card h2 { font-size:18px; font-weight:700; color:var(--navy); margin:0 0 20px; }
+    .login-field { margin-bottom:16px; }
+    .login-field label { display:block; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin-bottom:6px; }
+    .login-field input { width:100%; padding:12px 14px; border:1px solid var(--border); border-radius:8px; font-size:14px; font-family:inherit; color:var(--text); outline:none; transition:border-color .15s; }
+    .login-field input:focus { border-color:var(--navy); }
+    .login-btn { width:100%; padding:13px; background:var(--navy); color:white; border:none; border-radius:8px; font-size:14px; font-weight:800; font-family:inherit; cursor:pointer; margin-top:8px; letter-spacing:.5px; transition:background .15s; }
+    .login-btn:hover { background:#002B80; }
+    .login-btn:disabled { background:var(--grey); cursor:not-allowed; }
+    .login-error { background:#fee2e2; color:#991b1b; border-radius:8px; padding:10px 14px; font-size:13px; font-weight:600; margin-top:14px; display:none; }
+    .login-spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.4); border-top-color:white; border-radius:50%; animation:spin .7s linear infinite; margin-right:8px; vertical-align:middle; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* ── SAVE INDICATOR ── */
+    #saveIndicator { position:fixed; bottom:20px; right:24px; background:var(--navy); color:white; padding:8px 16px; border-radius:20px; font-size:12px; font-weight:700; z-index:9999; opacity:0; transition:opacity .3s; pointer-events:none; }
+    #saveIndicator.visible { opacity:1; }
+
+    /* ── APP ── */
+    #app { display:none; }
+
+    header { position:relative; background:#F2EDE4; color:#0D0D0D; padding:28px 36px; display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap; overflow:hidden; }
+    header::before { content:''; position:absolute; top:0; left:0; right:0; height:18px; background:linear-gradient(to right,#6B0010 50%,#E8000C 50%); }
+    header::after  { content:''; position:absolute; bottom:0; left:0; right:0; height:18px; background:linear-gradient(to right,#14172B 50%,#1D56F5 50%); }
+    .brand { display:flex; flex-direction:column; gap:2px; position:relative; z-index:1; }
+    .brand-top { display:flex; align-items:center; gap:10px; }
+    .brand-logo { font-weight:900; font-size:36px; letter-spacing:-1px; color:#0D0D0D; line-height:1; }
+    .brand-dashboard { font-weight:800; font-size:18px; letter-spacing:3px; text-transform:uppercase; color:#6B0010; }
+    .brand-sub { font-weight:800; font-size:18px; letter-spacing:.5px; color:#0D0D0D; }
+
+    .month-tabs-bar { background:#002B80; padding:0 32px; display:flex; gap:2px; overflow-x:auto; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.2) transparent; border-bottom:1px solid rgba(255,255,255,.08); }
+    .month-tab { background:transparent; color:rgba(255,255,255,.65); border:none; border-radius:0; padding:12px 16px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; cursor:pointer; white-space:nowrap; border-bottom:3px solid transparent; transition:color .15s,border-color .15s; }
+    .month-tab:hover { color:white; }
+    .month-tab.active { color:white; border-bottom-color:var(--red); background:rgba(255,255,255,.08); }
+
+    /* ── MAIN TABS ── */
+    .tabs { display:flex; gap:6px; padding:20px 32px 0; flex-wrap:wrap; background:#F0F2F5; align-items:flex-end; }
+    .sub-tabs { display:flex; gap:6px; padding:0 0 18px; flex-wrap:wrap; background:transparent; }
+    .tab { background:white; color:var(--muted); padding:12px 28px; border-radius:8px 8px 0 0; font-weight:700; font-size:13px; letter-spacing:.5px; text-transform:uppercase; border:1px solid var(--border); border-bottom:3px solid transparent; cursor:pointer; }
+    .tab.active { background:white; color:var(--navy); border-color:var(--border); border-bottom-color:var(--red); }
+    .tab-add { background:transparent; color:var(--navy); padding:10px 14px; border-radius:8px 8px 0 0; font-weight:900; font-size:18px; border:1px dashed var(--border); border-bottom:3px solid transparent; cursor:pointer; line-height:1; transition:background .15s; }
+    .tab-add:hover { background:rgba(0,61,165,.07); }
+    .sub-tab { background:white; color:var(--muted); padding:10px 20px; border-radius:8px; font-weight:700; font-size:13px; letter-spacing:.5px; text-transform:uppercase; border:1px solid var(--border); cursor:pointer; }
+    .sub-tab.active { background:var(--navy); color:white; border-color:var(--navy); }
+
+    main { padding:24px 32px 48px; }
+
+    .tab-settings { background:var(--card); border:1px solid var(--border); border-radius:10px; box-shadow:0 2px 8px rgba(0,61,165,.06); padding:18px; margin-bottom:20px; }
+    .tab-settings h3 { margin:0 0 14px; color:var(--navy); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.8px; border-left:3px solid var(--red); padding-left:10px; }
+    .tab-settings-grid { display:grid; grid-template-columns:repeat(5,minmax(160px,1fr)); gap:10px; }
+    .tab-settings-grid label { display:block; font-size:11px; color:var(--muted); font-weight:900; text-transform:uppercase; margin-bottom:6px; }
+    .tab-settings-grid input { width:100%; padding:10px; border:1px solid var(--border); border-radius:6px; background:white; color:var(--navy); font-weight:700; }
+
+    .summary-grid { display:grid; grid-template-columns:repeat(5,minmax(180px,1fr)); gap:16px; margin-bottom:22px; }
+    .project-results-grid { display:grid; grid-template-columns:repeat(3,minmax(220px,1fr)); gap:16px; margin-bottom:22px; }
+    .summary-card,.section,.input-section,.project-card { background:var(--card); border:1px solid var(--border); border-radius:10px; box-shadow:0 2px 8px rgba(0,61,165,.06); }
+    .summary-card,.project-card { padding:20px; min-height:160px; }
+    .summary-card h3,.project-card h3 { margin:0 0 14px; color:var(--navy); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; min-height:34px; padding-left:10px; border-left:3px solid var(--red); }
+    .summary-progress-row,.project-progress-row { display:flex; align-items:center; gap:14px; }
+    .summary-target,.project-target { font-size:13px; color:var(--text); line-height:1.35; }
+    .summary-target strong,.project-target strong { color:var(--navy); font-size:16px; }
+    .summary-target span,.project-target span { display:block; color:var(--muted); margin-top:4px; font-weight:800; }
+
+    .circle { --pct:0; --color:var(--grey); width:54px; height:54px; border-radius:50%; background:conic-gradient(var(--color) calc(var(--pct)*1%),#edf0f5 0); display:grid; place-items:center; margin:auto; }
+    .circle-inner { width:42px; height:42px; border-radius:50%; background:white; display:grid; place-items:center; font-size:11px; font-weight:900; text-align:center; }
+    .summary-circle,.project-circle { width:76px; height:76px; flex:0 0 76px; margin:0; }
+    .summary-circle .circle-inner,.project-circle .circle-inner { width:58px; height:58px; font-size:16px; }
+
+    .section { margin-bottom:20px; overflow:hidden; border-radius:10px; }
+    .section-header { background:var(--navy); color:white; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; font-weight:800; font-size:12px; letter-spacing:1px; text-transform:uppercase; gap:12px; border-left:5px solid var(--red); }
+
+    table { width:100%; border-collapse:collapse; background:white; }
+    th,td { padding:13px 14px; border-bottom:1px solid var(--border); text-align:left; font-size:14px; vertical-align:middle; }
+    th { color:var(--navy); background:#F7F9FC; font-size:11px; text-transform:uppercase; letter-spacing:.6px; font-weight:700; }
+
+    .bar-wrap { width:100%; background:#edf0f5; height:12px; border-radius:999px; overflow:hidden; margin-top:6px; }
+    .bar { height:100%; width:0%; background:var(--grey); border-radius:999px; }
+    .percentage-card { display:inline-block; padding:8px 12px; border-radius:999px; font-weight:900; background:#eef2ff; color:var(--navy); }
+
+    .not-tracked-badge { display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:8px; background:#f1f3f7; border:1px solid var(--border); color:var(--muted); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; white-space:nowrap; }
+    .not-tracked-badge::before { content:'—'; font-size:13px; color:var(--grey); }
+
+    .input-section { padding:20px; margin-bottom:20px; }
+    .input-section-top { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:14px; }
+    .section-name { font-size:18px; font-weight:800; color:var(--navy); border:1px solid var(--border); border-radius:8px; padding:10px 14px; width:100%; }
+    .metric-editor,.task-editor { border:1px solid var(--border); border-radius:8px; padding:14px; margin-top:12px; background:#F7F9FC; }
+    .move-controls { display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
+    .btn-move { background:#eef2ff; color:var(--navy); border:1px solid #c7d7fe; border-radius:4px; padding:2px 7px; font-size:11px; line-height:1.4; cursor:pointer; font-weight:800; }
+    .btn-move:hover { background:var(--navy); color:white; }
+    .btn-move:disabled { opacity:.25; cursor:default; background:#eef2ff; color:var(--navy); }
+    .metric-title-row { display:grid; grid-template-columns:auto 1.5fr 1fr 1fr auto auto; gap:10px; align-items:center; }
+    .task-title-row { display:grid; grid-template-columns:1.6fr 1fr auto; gap:10px; align-items:center; }
+    .editor-grid { display:grid; grid-template-columns:repeat(6,minmax(110px,1fr)); gap:10px; margin-top:12px; }
+    .editor-grid label { font-size:11px; color:var(--muted); font-weight:800; text-transform:uppercase; }
+    .editor-grid input,.metric-title-row input,.metric-title-row select,.task-title-row input,.task-title-row select { width:100%; padding:10px; border:1px solid var(--border); border-radius:6px; background:white; }
+
+    input,select,button { font-family:inherit; }
+    button { border:none; border-radius:6px; padding:10px 14px; font-weight:700; cursor:pointer; }
+    .btn-red { background:var(--red); color:white; }
+    .btn-blue { background:var(--blue); color:white; }
+    .btn-danger { background:#fee2e2; color:#991b1b; }
+    .btn-card { background:#eef2ff; color:var(--navy); border:1px solid #c7d7fe; }
+    .btn-card.active { background:var(--navy); color:white; border-color:var(--navy); }
+    .btn-warning { background:#fff7ed; color:#92400e; border:1px solid #fed7aa; }
+    .btn-ghost { background:transparent; color:var(--muted); border:1px solid var(--border); font-size:12px; padding:6px 12px; }
+    .btn-ghost:hover { background:var(--bg); }
+
+    .empty { padding:35px; text-align:center; background:white; border:1px dashed var(--border); border-radius:16px; color:var(--muted); }
+    .hidden { display:none; }
+
+    .month-pill { display:inline-flex; align-items:center; gap:6px; background:rgba(0,0,0,.07); border:1px solid rgba(0,0,0,.15); border-radius:20px; padding:5px 14px; font-size:12px; font-weight:800; letter-spacing:.5px; color:#14172B; }
+    .month-pill .dot { width:7px; height:7px; border-radius:50%; background:#E8000C; }
+
+    .user-info { display:flex; align-items:center; gap:10px; position:relative; z-index:1; }
+    .user-email { font-size:12px; font-weight:700; color:var(--muted); }
+    .btn-logout { background:transparent; border:1px solid var(--border); color:var(--muted); font-size:12px; font-weight:700; padding:7px 14px; border-radius:8px; cursor:pointer; }
+    .btn-logout:hover { background:#fee2e2; color:#991b1b; border-color:#fca5a5; }
+
+    /* ── CUSTOM TABS (new feature) ── */
+    .ctab-container { }
+    .ctab-sub-tabs { display:flex; gap:6px; margin-bottom:20px; flex-wrap:wrap; }
+    .ctab-sub-tab { background:white; color:var(--muted); padding:10px 20px; border-radius:8px; font-weight:700; font-size:13px; border:1px solid var(--border); cursor:pointer; }
+    .ctab-sub-tab.active { background:var(--navy); color:white; border-color:var(--navy); }
+
+    /* Field schema editor */
+    .field-schema-bar { background:#EEF2FF; border:1px solid #C7D7FE; border-radius:8px; padding:14px; margin-bottom:16px; }
+    .field-schema-bar h4 { margin:0 0 10px; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.6px; color:var(--navy); }
+    .field-list { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+    .field-chip { display:inline-flex; align-items:center; gap:6px; background:white; border:1px solid var(--border); border-radius:6px; padding:5px 10px; font-size:12px; font-weight:700; color:var(--text); }
+    .field-chip-name { cursor:pointer; }
+    .field-chip-name:hover { color:var(--navy); text-decoration:underline; }
+    .field-chip-del { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:0 0 0 2px; line-height:1; }
+    .field-chip-del:hover { color:var(--red); }
+    .field-add-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .field-add-row input,.field-add-row select { padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; background:white; }
+
+    /* Entry rows in custom tab input */
+    .ctab-entry { border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:10px; background:#F7F9FC; }
+    .ctab-entry-fields { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
+    .ctab-entry-fields label { font-size:11px; color:var(--muted); font-weight:800; text-transform:uppercase; display:block; margin-bottom:4px; }
+    .ctab-entry-fields input,.ctab-entry-fields select,.ctab-entry-fields textarea { width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; background:white; font-family:inherit; }
+    .ctab-entry-fields textarea { resize:vertical; min-height:60px; }
+    .ctab-entry-top { display:flex; justify-content:flex-end; margin-bottom:10px; }
+
+    /* Results table for custom tab */
+    .ctab-results-table { width:100%; border-collapse:collapse; background:white; border-radius:10px; overflow:hidden; border:1px solid var(--border); }
+    .ctab-results-table th { background:#F7F9FC; color:var(--navy); font-size:11px; text-transform:uppercase; letter-spacing:.6px; font-weight:700; padding:12px 14px; border-bottom:1px solid var(--border); text-align:left; }
+    .ctab-results-table td { padding:12px 14px; border-bottom:1px solid var(--border); font-size:13px; vertical-align:middle; color:var(--text); }
+    .ctab-results-table tr:last-child td { border-bottom:none; }
+    .ctab-results-table tr:hover td { background:#F7F9FC; }
+
+    /* Dropdown option editor */
+    .dropdown-opts { margin-top:8px; }
+    .dropdown-opt-row { display:flex; gap:6px; align-items:center; margin-bottom:4px; }
+    .dropdown-opt-row input { flex:1; padding:6px 10px; border:1px solid var(--border); border-radius:6px; font-size:12px; }
+
+    /* Status badge */
+    .status-badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; }
+    .status-Pending    { background:#FEF9C3; color:#854D0E; }
+    .status-InProgress { background:#DBEAFE; color:#1E40AF; }
+    .status-Done       { background:#DCFCE7; color:#166534; }
+    .status-OnHold     { background:#F3F4F6; color:#374151; }
+
+    /* Project task list in results */
+    .project-task-list { background:white; border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-top:8px; }
+    .project-task-list-header { background:var(--navy); color:white; padding:10px 18px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.8px; border-left:5px solid var(--red); }
+    .project-task-row { display:flex; align-items:center; justify-content:space-between; padding:11px 18px; border-bottom:1px solid var(--border); font-size:13px; }
+    .project-task-row:last-child { border-bottom:none; }
+    .project-task-name { color:var(--text); font-weight:600; }
+    .ptask-status { display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:800; text-transform:uppercase; }
+    .ptask-Pending    { background:#FEF9C3; color:#854D0E; }
+    .ptask-In\ Progress { background:#DBEAFE; color:#1E40AF; }
+    .ptask-Done       { background:#DCFCE7; color:#166534; }
+    .ptask-On\ Hold   { background:#F3F4F6; color:#374151; }
+
+    /* Link field */
+    .result-link { color:var(--navy); text-decoration:none; font-weight:700; }
+    .result-link:hover { text-decoration:underline; }
+
+    @media (max-width:1100px) {
+      .summary-grid,.project-results-grid,.tab-settings-grid { grid-template-columns:repeat(2,1fr); }
+      .editor-grid { grid-template-columns:repeat(2,1fr); }
+      .metric-title-row,.task-title-row { grid-template-columns:1fr; }
+      table { display:block; overflow-x:auto; }
+    }
+    @media (max-width:600px) {
+      main { padding:18px 14px; }
+      .tabs { padding-left:14px; padding-right:14px; }
+      .tab { flex:1; text-align:center; padding:14px 10px; }
+      .summary-grid,.project-results-grid,.tab-settings-grid { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">REMAX</div>
+    <div class="login-sub">Premier Dashboard</div>
+    <h2>Sign in to continue</h2>
+    <div class="login-field"><label>Email</label><input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email" /></div>
+    <div class="login-field"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" /></div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<div id="saveIndicator">Saving…</div>
+
+<!-- ── APP ── -->
+<div id="app">
+  <header>
+    <div class="brand">
+      <div class="brand-top"><div class="brand-logo">REMAX</div><div class="brand-dashboard">Dashboard</div></div>
+      <div class="brand-sub">Premier</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:relative;z-index:1;">
+      <div id="activeMonthPill" class="month-pill"><span class="dot"></span><span id="activeMonthLabel">January</span></div>
+      <button class="btn-warning" id="clearAchievedBtn" style="font-size:13px;">Clear Achieved Data</button>
+      <div class="user-info">
+        <span class="user-email" id="userEmailLabel"></span>
+        <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="month-tabs-bar" id="monthTabsBar"></div>
+
+  <nav class="tabs" id="mainTabsNav">
+    <button class="tab active" id="inputTabBtn">Input</button>
+    <button class="tab" id="resultsTabBtn">Results</button>
+    <button class="tab" id="projectTabBtn">Project Dashboard</button>
+    <!-- dynamic custom tabs rendered here -->
+    <div id="customTabBtns" style="display:contents;"></div>
+    <button class="tab-add" id="addCustomTabBtn" title="Add new tab">+</button>
+  </nav>
+
+  <main>
+    <!-- ── INPUT TAB ── -->
+    <section id="inputTab">
+      <div class="tab-settings">
+        <h3>Rename Tabs</h3>
+        <div class="tab-settings-grid">
+          <div><label>Main Tab 1</label><input id="tabNameInput" type="text" /></div>
+          <div><label>Main Tab 2</label><input id="tabNameResults" type="text" /></div>
+          <div><label>Main Tab 3</label><input id="tabNameProject" type="text" /></div>
+          <div><label>Project Sub-Tab 1</label><input id="tabNameProjectInput" type="text" /></div>
+          <div><label>Project Sub-Tab 2</label><input id="tabNameProjectResults" type="text" /></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap;">
+        <h1 style="margin:0;color:var(--navy);">Input Dashboard</h1>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn-warning" id="importTargetsBtn" style="font-size:13px;">↙ Import Targets from Previous Month</button>
+          <button class="btn-blue" id="addSectionBtn">+ Add Section</button>
+        </div>
+      </div>
+      <div id="inputSections"></div>
+    </section>
+
+    <!-- ── RESULTS TAB ── -->
+    <section id="resultsTab" class="hidden">
+      <div class="summary-grid" id="summaryGrid"></div>
+      <div id="resultsSections"></div>
+    </section>
+
+    <!-- ── PROJECT TAB ── -->
+    <section id="projectTab" class="hidden">
+      <div class="sub-tabs">
+        <button class="sub-tab active" id="projectInputSubBtn">Project Input</button>
+        <button class="sub-tab" id="projectResultsSubBtn">Project Results</button>
+      </div>
+      <div id="projectInputPanel">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap;">
+          <h1 style="margin:0;color:var(--navy);">Project Input</h1>
+          <button class="btn-blue" id="addProjectSectionBtn">+ Add Project Section</button>
+        </div>
+        <div id="projectInputSections"></div>
+      </div>
+      <div id="projectResultsPanel" class="hidden">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap;">
+          <h1 style="margin:0;color:var(--navy);">Project Results</h1>
+        </div>
+        <div class="project-results-grid" id="projectResultsGrid"></div>
+        <!-- NEW: task list below cards -->
+        <div id="projectTaskListContainer"></div>
+      </div>
+    </section>
+
+    <!-- ── CUSTOM TABS (rendered dynamically) ── -->
+    <div id="customTabPanels"></div>
+  </main>
+</div>
+
+<!-- ── FIREBASE SDK ── -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyALijSnyfDaFyQJpKrVxDEI_GcN3qZJt_8",
+    authDomain: "my-dashboard-1573d.firebaseapp.com",
+    projectId: "my-dashboard-1573d",
+    storageBucket: "my-dashboard-1573d.firebasestorage.app",
+    messagingSenderId: "246995616434",
+    appId: "1:246995616434:web:543b859fb943acb2afbfab"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  window._firebase = { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, doc, getDoc, setDoc };
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('userEmailLabel').textContent = user.email;
+      await window.loadAllDataFromFirebase();
+      window.render();
+    } else {
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+    }
+  });
+</script>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  FIREBASE HELPERS
+// ════════════════════════════════════════════════════════════
+async function loadAllDataFromFirebase() {
+  const { db, doc, getDoc } = window._firebase;
+
+  const monthSnap = await getDoc(doc(db, 'shared', 'monthData'));
+  if (monthSnap.exists()) {
+    monthDataCache = monthSnap.data().months || {};
+    const fixed = {};
+    Object.keys(monthDataCache).forEach(k => { fixed[parseInt(k)] = monthDataCache[k]; });
+    monthDataCache = fixed;
+  }
+
+  const projectSnap = await getDoc(doc(db, 'shared', 'projectData'));
+  if (projectSnap.exists()) projectData = projectSnap.data().sections || defaultProjectData();
+  else projectData = defaultProjectData();
+
+  const tabSnap = await getDoc(doc(db, 'shared', 'tabNames'));
+  if (tabSnap.exists()) tabNames = tabSnap.data() || defaultTabNames();
+  else tabNames = defaultTabNames();
+
+  const metaSnap = await getDoc(doc(db, 'shared', 'meta'));
+  if (metaSnap.exists()) {
+    activeMonthIndex = metaSnap.data().activeMonthIndex ?? new Date().getMonth();
+  }
+
+  // NEW: load custom tabs
+  const ctabSnap = await getDoc(doc(db, 'shared', 'customTabs'));
+  if (ctabSnap.exists()) customTabs = ctabSnap.data().tabs || [];
+  else customTabs = [];
+}
+
+let _saveTimeout = null;
+function scheduleSave() {
+  if (_saveTimeout) clearTimeout(_saveTimeout);
+  _saveTimeout = setTimeout(commitToFirebase, 800);
+  const el = document.getElementById('saveIndicator');
+  el.textContent = 'Saving…';
+  el.classList.add('visible');
+}
+
+async function commitToFirebase() {
+  const { db, doc, setDoc } = window._firebase;
+  try {
+    const monthsObj = {};
+    Object.keys(monthDataCache).forEach(k => { monthsObj[String(k)] = monthDataCache[k]; });
+    await Promise.all([
+      setDoc(doc(db, 'shared', 'monthData'),   { months: monthsObj }),
+      setDoc(doc(db, 'shared', 'projectData'),  { sections: projectData }),
+      setDoc(doc(db, 'shared', 'tabNames'),     tabNames),
+      setDoc(doc(db, 'shared', 'meta'),         { activeMonthIndex }),
+      setDoc(doc(db, 'shared', 'customTabs'),   { tabs: customTabs })  // NEW
+    ]);
+    const el = document.getElementById('saveIndicator');
+    el.textContent = 'Saved ✓';
+    setTimeout(() => { el.classList.remove('visible'); }, 1500);
+  } catch (e) {
+    const el = document.getElementById('saveIndicator');
+    el.textContent = 'Save failed ✗';
+    el.style.background = '#991b1b';
+    setTimeout(() => { el.classList.remove('visible'); el.textContent = 'Saving…'; el.style.background = ''; }, 3000);
+  }
+}
+
+// ── Login / Logout ──
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="login-spinner"></span>Signing in…';
+  try {
+    const { auth, signInWithEmailAndPassword } = window._firebase;
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (e) {
+    let msg = 'Sign in failed. Please check your email and password.';
+    if (e.code === 'auth/invalid-email')       msg = 'Invalid email address.';
+    if (e.code === 'auth/user-not-found')      msg = 'No account found with this email.';
+    if (e.code === 'auth/wrong-password')      msg = 'Incorrect password.';
+    if (e.code === 'auth/too-many-requests')   msg = 'Too many attempts. Please try again later.';
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  }
+}
+async function doLogout() {
+  const { auth, signOut } = window._firebase;
+  await signOut(auth);
+}
+document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// ════════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════════
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+let activeMonthIndex = new Date().getMonth();
+let monthDataCache   = {};
+let projectData      = [];
+let tabNames         = {};
+let activeMainTab    = 'input';
+let activeProjectSubTab = 'input';
+let customTabs       = [];   // NEW: array of custom tab objects
+let activeCustomTabId = null; // NEW
+
+// ════════════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════════════
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function escapeHtml(str) {
+  return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
+}
+function save() { scheduleSave(); }
+
+// ── Month data ──
+function getOrInitMonthData(monthIdx) {
+  if (monthDataCache[monthIdx]) return monthDataCache[monthIdx];
+  const source = monthDataCache[activeMonthIndex];
+  if (!source) { const d = defaultData(); migrateOldMetrics(d); monthDataCache[monthIdx] = d; return d; }
+  const clone = JSON.parse(JSON.stringify(source)).map(s => ({
+    ...s, metrics: s.metrics.map(m => ({ ...m, dailyA:'', dailyB:'', weeklyA:'', weeklyB:'', monthlyA:'', monthlyB:'' }))
+  }));
+  migrateOldMetrics(clone);
+  monthDataCache[monthIdx] = clone;
+  return clone;
+}
+function getData() {
+  if (monthDataCache[activeMonthIndex]) return monthDataCache[activeMonthIndex];
+  const d = defaultData(); migrateOldMetrics(d); monthDataCache[activeMonthIndex] = d; return d;
+}
+function setData(d) { monthDataCache[activeMonthIndex] = d; }
+
+// ════════════════════════════════════════════════════════════
+//  DEFAULT DATA FACTORIES
+// ════════════════════════════════════════════════════════════
+function createMetric(name='New Metric', type='target', showInSummary=false) {
+  return { id:uid(), name, type, display:'circle', showInSummary, dailyA:'', dailyB:'', weeklyA:'', weeklyB:'', monthlyA:'', monthlyB:'' };
+}
+function createTask(name='New Task', status='Pending') { return { id:uid(), name, status }; }
+
+function defaultTabNames() {
+  return { input:'Input', results:'Results', project:'Project Dashboard', projectInput:'Project Input', projectResults:'Project Results' };
+}
+
+function defaultData() {
+  return [
+    { id:uid(), name:'Recruitment', metrics:[
+      createMetric('Booked Meetings with Potential Agents'),
+      createMetric('Meetings Conducted with Collection Agents'),
+      createMetric('Agents Hired','target',true),
+      createMetric('Collection Agents Signed','target',true),
+      createMetric('Brand Ambassadors Signed','target',true),
+      createMetric('REMAX Partners Signed')
+    ]},
+    { id:uid(), name:'International Referrals', metrics:[
+      createMetric('Number of Emails to Agency Managers'),
+      createMetric('Webinars Conducted'),
+      createMetric('WhatsApp Channel Updates'),
+      createMetric('Monthly Response Rate','response')
+    ]},
+    { id:uid(), name:'Sales & Listings', metrics:[
+      createMetric('Quality Listing Obtained'),
+      createMetric('Personal Gross Commission Income','target',true),
+      createMetric('Team Gross Commission Income','target',true),
+      createMetric('Gross Commission Achieved')
+    ]},
+    { id:uid(), name:'Education & Exposure', metrics:[
+      createMetric('Trainings Conducted'),
+      createMetric('Social Media Posts')
+    ]}
+  ];
+}
+
+function defaultProjectData() {
+  return [
+    { id:uid(), name:'Website',          tasks:[createTask('Define website structure','Pending'),createTask('Prepare content','On Hold'),createTask('Review design','In Progress')] },
+    { id:uid(), name:'Webinar',          tasks:[createTask('Select topic','Pending'),createTask('Prepare invitation list','Pending'),createTask('Finalize presentation','On Hold')] },
+    { id:uid(), name:'Investment Dinner',tasks:[createTask('Confirm venue','Pending'),createTask('Prepare guest list','In Progress'),createTask('Prepare pitch deck','On Hold')] }
+  ];
+}
+
+function migrateOldMetrics(d) {
+  const names = ['Agents Hired','Collection Agents Signed','Brand Ambassadors Signed','Personal Gross Commission Income','Team Gross Commission Income'];
+  d.forEach(s => s.metrics.forEach(m => {
+    if (m.showInSummary === undefined) m.showInSummary = names.some(n => m.name.toLowerCase().includes(n.toLowerCase()));
+  }));
+}
+
+// ════════════════════════════════════════════════════════════
+//  NEW: CUSTOM TAB DATA FACTORIES
+// ════════════════════════════════════════════════════════════
+function createCustomTab(name='New Tab') {
+  return {
+    id: uid(),
+    name,
+    inputSectionName: 'Input Section',
+    resultsSectionName: 'Results Section',
+    // Field schema: defines columns/fields for entries
+    fields: [
+      { id: uid(), name: 'Name',   type: 'text' },
+      { id: uid(), name: 'Status', type: 'dropdown', options: ['Pending','In Progress','Done','On Hold'] },
+      { id: uid(), name: 'Notes',  type: 'textarea' }
+    ],
+    entries: []
+  };
+}
+
+function createEntry(fields) {
+  const entry = { id: uid() };
+  fields.forEach(f => { entry[f.id] = ''; });
+  return entry;
+}
+
+// ════════════════════════════════════════════════════════════
+//  EXISTING: CALCULATION / DISPLAY HELPERS (unchanged)
+// ════════════════════════════════════════════════════════════
+function formatNumber(value) {
+  if (value===null||value===undefined||value==='') return '0';
+  const s = String(value).replace(/,/g,'').trim();
+  if (s===''||isNaN(Number(s))) return String(value);
+  return Number(s).toLocaleString('en-US');
+}
+function labelA(type) { return type==='target'?'Target':type==='conversion'?'Total':type==='response'?'Sent':'Percentage'; }
+function labelB(type) { return type==='target'?'Achieved':type==='conversion'?'Converted':type==='response'?'Responses':'N/A'; }
+function calc(metric, period) {
+  const a = parseFloat(String(metric[period+'A']).replace(/,/g,''));
+  const b = parseFloat(String(metric[period+'B']).replace(/,/g,''));
+  if (metric.type==='custom') return isNaN(a)?null:Math.max(0,a);
+  if (isNaN(a)||isNaN(b)||a<=0) return null;
+  return Math.max(0,(b/a)*100);
+}
+function colorFor(pct) { if (pct===null) return 'var(--grey)'; if (pct<50) return 'var(--red)'; if (pct<80) return 'var(--orange)'; return 'var(--green)'; }
+function formatPct(pct) { if (pct===null) return 'N/A'; return Math.round(pct)+'%'; }
+function ratioText(metric, period) {
+  if (isNotTracked(metric,period)) return '';
+  if (metric.type==='custom') return formatPct(calc(metric,period));
+  const a=metric[period+'A'], b=metric[period+'B'];
+  if (!a&&!b) return '— / —';
+  return formatNumber(b||0)+' / '+formatNumber(a||0);
+}
+function isNotTracked(metric, period) {
+  const a=metric[period+'A'], b=metric[period+'B'];
+  if (metric.type==='custom') return !a&&a!==0;
+  return (!a||a==='')&&(!b||b==='');
+}
+function notTrackedBadge() { return '<span class="not-tracked-badge">Not tracked</span>'; }
+function visual(metric, period) {
+  if (isNotTracked(metric,period)) return notTrackedBadge();
+  const pct=calc(metric,period), color=colorFor(pct), safePct=pct===null?0:Math.min(pct,100);
+  if (metric.display==='bar') return '<strong>'+formatPct(pct)+'</strong><div class="bar-wrap"><div class="bar" style="width:'+safePct+'%;background:'+color+';"></div></div>';
+  if (metric.display==='card') return '<span class="percentage-card" style="color:'+color+';">'+formatPct(pct)+'</span>';
+  return '<div class="circle" style="--pct:'+safePct+';--color:'+color+';"><div class="circle-inner">'+formatPct(pct)+'</div></div>';
+}
+function summaryVisual(metric) {
+  if (!metric) return '<div class="summary-progress-row"><div class="circle summary-circle" style="--pct:0;--color:var(--grey);"><div class="circle-inner">0</div></div><div class="summary-target">No data</div></div>';
+  const pct=calc(metric,'monthly'), color=colorFor(pct), safePct=pct===null?0:Math.min(pct,100);
+  const achieved=metric.type==='custom'?formatPct(pct):formatNumber(metric.monthlyB||0);
+  const target=metric.type==='custom'?'100%':formatNumber(metric.monthlyA||0);
+  return '<div class="summary-progress-row"><div class="circle summary-circle" style="--pct:'+safePct+';--color:'+color+';"><div class="circle-inner">'+achieved+'</div></div><div class="summary-target"><strong>'+achieved+'</strong> / '+target+'<span>'+formatPct(pct)+' achieved</span></div></div>';
+}
+function projectVisual(section) {
+  const total=section.tasks.length, done=section.tasks.filter(t=>t.status==='Done').length;
+  const pct=total?Math.round((done/total)*100):null, color=colorFor(pct), safePct=pct===null?0:Math.min(pct,100);
+  return '<div class="project-progress-row"><div class="circle project-circle" style="--pct:'+safePct+';--color:'+color+';"><div class="circle-inner">'+formatPct(pct)+'</div></div><div class="project-target"><strong>'+formatNumber(done)+'</strong> / '+formatNumber(total)+' tasks done<span>'+formatPct(pct)+' completed</span></div></div>';
+}
+
+// ════════════════════════════════════════════════════════════
+//  EXISTING: TAB / NAVIGATION (unchanged)
+// ════════════════════════════════════════════════════════════
+function clearAchievedData() {
+  if (!confirm('Are you sure you want to clear achieved data?')) return;
+  const d=getData();
+  d.forEach(s => s.metrics.forEach(m => {
+    m.dailyB=''; m.weeklyB=''; m.monthlyB='';
+    if (m.type==='custom') { m.dailyA=''; m.weeklyA=''; m.monthlyA=''; }
+  }));
+  setData(d); save(); render();
+}
+
+function switchMonth(idx) { activeMonthIndex=idx; save(); render(); }
+
+function showTab(tab) {
+  activeMainTab = tab;
+  activeCustomTabId = null;
+  ['input','results','project'].forEach(t => {
+    document.getElementById(t+'Tab').classList.toggle('hidden', t!==tab);
+    document.getElementById(t+'TabBtn').classList.toggle('active', t===tab);
+  });
+  document.getElementById('customTabPanels').classList.add('hidden');
+  // deactivate custom tab buttons
+  document.querySelectorAll('.custom-tab-btn').forEach(b => b.classList.remove('active'));
+  render();
+}
+
+function showCustomTab(tabId) {
+  activeMainTab = 'custom';
+  activeCustomTabId = tabId;
+  ['input','results','project'].forEach(t => {
+    document.getElementById(t+'Tab').classList.add('hidden');
+    document.getElementById(t+'TabBtn').classList.remove('active');
+  });
+  document.getElementById('customTabPanels').classList.remove('hidden');
+  document.querySelectorAll('.custom-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tabid===tabId));
+  renderCustomTabPanel(tabId);
+}
+
+function showProjectSubTab(tab) {
+  activeProjectSubTab = tab;
+  document.getElementById('projectInputPanel').classList.toggle('hidden', tab!=='input');
+  document.getElementById('projectResultsPanel').classList.toggle('hidden', tab!=='results');
+  document.getElementById('projectInputSubBtn').classList.toggle('active', tab==='input');
+  document.getElementById('projectResultsSubBtn').classList.toggle('active', tab==='results');
+  renderProject();
+}
+
+function updateTabName(key, value) {
+  tabNames[key] = value || defaultTabNames()[key];
+  save(); renderTabNames();
+}
+
+function renderTabNames() {
+  document.getElementById('inputTabBtn').textContent   = tabNames.input;
+  document.getElementById('resultsTabBtn').textContent = tabNames.results;
+  document.getElementById('projectTabBtn').textContent = tabNames.project;
+  document.getElementById('projectInputSubBtn').textContent   = tabNames.projectInput;
+  document.getElementById('projectResultsSubBtn').textContent = tabNames.projectResults;
+  document.getElementById('tabNameInput').value           = tabNames.input;
+  document.getElementById('tabNameResults').value         = tabNames.results;
+  document.getElementById('tabNameProject').value         = tabNames.project;
+  document.getElementById('tabNameProjectInput').value    = tabNames.projectInput;
+  document.getElementById('tabNameProjectResults').value  = tabNames.projectResults;
+}
+
+function renderMonthTabs() {
+  document.getElementById('monthTabsBar').innerHTML = MONTHS.map((m,i) =>
+    `<button class="month-tab ${i===activeMonthIndex?'active':''}" onclick="switchMonth(${i})">${m}</button>`
+  ).join('');
+  document.getElementById('activeMonthLabel').textContent = MONTHS[activeMonthIndex];
+}
+
+// ════════════════════════════════════════════════════════════
+//  EXISTING: INPUT CRUD (unchanged)
+// ════════════════════════════════════════════════════════════
+function addSection() {
+  const d=getData(); d.push({id:uid(),name:'New Section',metrics:[]}); setData(d); save(); render();
+}
+function deleteSection(sectionId) {
+  if (!confirm('Delete this section?')) return;
+  setData(getData().filter(s=>s.id!==sectionId)); save(); render();
+}
+function addMetric(sectionId) {
+  const d=getData(), section=d.find(s=>s.id===sectionId); if (!section) return;
+  const nm=createMetric(); section.metrics.push(nm); setData(d);
+  MONTHS.forEach((_,mi)=>{ if(mi===activeMonthIndex) return; const od=getOrInitMonthData(mi); const os=od.find(s=>s.id===sectionId); if(!os) return; os.metrics.push({...nm,dailyA:'',dailyB:'',weeklyA:'',weeklyB:'',monthlyA:'',monthlyB:''}); monthDataCache[mi]=od; });
+  save(); render();
+}
+function deleteMetric(sectionId, metricId) {
+  const d=getData(), section=d.find(s=>s.id===sectionId); if (!section) return;
+  section.metrics=section.metrics.filter(m=>m.id!==metricId); setData(d);
+  MONTHS.forEach((_,mi)=>{ if(mi===activeMonthIndex) return; const od=getOrInitMonthData(mi); const os=od.find(s=>s.id===sectionId); if(!os) return; os.metrics=os.metrics.filter(m=>m.id!==metricId); monthDataCache[mi]=od; });
+  save(); render();
+}
+function updateSection(sectionId, value) {
+  const d=getData(), s=d.find(s=>s.id===sectionId); if(s) s.name=value; setData(d); save(); renderResults();
+}
+const STRUCTURAL_FIELDS = new Set(['name','type','display','showInSummary']);
+function updateMetric(sectionId, metricId, field, value) {
+  const d=getData(), section=d.find(s=>s.id===sectionId); if(!section) return;
+  const metric=section.metrics.find(m=>m.id===metricId); if(metric) metric[field]=value; setData(d);
+  if (STRUCTURAL_FIELDS.has(field)) {
+    MONTHS.forEach((_,mi)=>{ if(mi===activeMonthIndex) return; const od=getOrInitMonthData(mi); const os=od.find(s=>s.id===sectionId); if(!os) return; const om=os.metrics.find(m=>m.id===metricId); if(!om) return; om[field]=value; monthDataCache[mi]=od; });
+  }
+  save(); renderResults();
+}
+function toggleSummaryCard(sectionId, metricId) {
+  const d=getData(), section=d.find(s=>s.id===sectionId); if(!section) return;
+  const metric=section.metrics.find(m=>m.id===metricId); if(!metric) return;
+  metric.showInSummary=!metric.showInSummary; setData(d);
+  MONTHS.forEach((_,mi)=>{ if(mi===activeMonthIndex) return; const od=getOrInitMonthData(mi); const os=od.find(s=>s.id===sectionId); if(!os) return; const om=os.metrics.find(m=>m.id===metricId); if(!om) return; om.showInSummary=metric.showInSummary; monthDataCache[mi]=od; });
+  save(); render();
+}
+function moveMetric(sectionId, metricId, direction) {
+  const d=getData(), section=d.find(s=>s.id===sectionId); if(!section) return;
+  const idx=section.metrics.findIndex(m=>m.id===metricId), newIdx=idx+direction;
+  if(newIdx<0||newIdx>=section.metrics.length) return;
+  const [moved]=section.metrics.splice(idx,1); section.metrics.splice(newIdx,0,moved); setData(d);
+  const newOrder=section.metrics.map(m=>m.id);
+  MONTHS.forEach((_,mi)=>{ if(mi===activeMonthIndex) return; const od=getOrInitMonthData(mi); const os=od.find(s=>s.id===sectionId); if(!os) return; os.metrics.sort((a,b)=>{ const ai=newOrder.indexOf(a.id),bi=newOrder.indexOf(b.id); if(ai===-1&&bi===-1) return 0; if(ai===-1) return 1; if(bi===-1) return -1; return ai-bi; }); monthDataCache[mi]=od; });
+  save(); renderInput(); renderResults();
+}
+function importTargetsFromPreviousMonth() {
+  if (activeMonthIndex===0) { alert('January is the first month — there is no previous month to import from.'); return; }
+  const prevIdx=activeMonthIndex-1;
+  if (!confirm(`Import targets from ${MONTHS[prevIdx]} into ${MONTHS[activeMonthIndex]}?\n\nThis will overwrite existing target (A) values for matching metrics. Achieved values will not be changed.`)) return;
+  const prevData=monthDataCache[prevIdx]||getOrInitMonthData(prevIdx), currData=getData();
+  currData.forEach(cs=>{ const ps=prevData.find(s=>s.name===cs.name); if(!ps) return; cs.metrics.forEach(cm=>{ const pm=ps.metrics.find(m=>m.name===cm.name); if(!pm) return; cm.dailyA=pm.dailyA; cm.weeklyA=pm.weeklyA; cm.monthlyA=pm.monthlyA; }); });
+  setData(currData); save(); render();
+}
+
+// ════════════════════════════════════════════════════════════
+//  EXISTING: PROJECT CRUD (unchanged)
+// ════════════════════════════════════════════════════════════
+function addProjectSection() { projectData.push({id:uid(),name:'New Project Section',tasks:[]}); save(); renderProject(); }
+function deleteProjectSection(sectionId) { if(!confirm('Delete this project section?')) return; projectData=projectData.filter(s=>s.id!==sectionId); save(); renderProject(); }
+function updateProjectSection(sectionId, value) { const s=projectData.find(s=>s.id===sectionId); if(s) s.name=value; save(); renderProjectResults(); }
+function addTask(sectionId) { const s=projectData.find(s=>s.id===sectionId); if(!s) return; s.tasks.push(createTask()); save(); renderProject(); }
+function deleteTask(sectionId, taskId) { const s=projectData.find(s=>s.id===sectionId); if(!s) return; s.tasks=s.tasks.filter(t=>t.id!==taskId); save(); renderProject(); }
+function updateTask(sectionId, taskId, field, value) { const s=projectData.find(s=>s.id===sectionId); if(!s) return; const t=s.tasks.find(t=>t.id===taskId); if(t) t[field]=value; save(); renderProjectResults(); }
+
+// ════════════════════════════════════════════════════════════
+//  NEW: CUSTOM TAB CRUD
+// ════════════════════════════════════════════════════════════
+function addCustomTab() {
+  const tab = createCustomTab('New Tab');
+  customTabs.push(tab);
+  save();
+  renderCustomTabButtons();
+  showCustomTab(tab.id);
+}
+
+function deleteCustomTab(tabId) {
+  if (!confirm('Delete this tab and all its data?')) return;
+  customTabs = customTabs.filter(t => t.id !== tabId);
+  if (activeCustomTabId === tabId) {
+    activeCustomTabId = null;
+    showTab('input');
+  }
+  save();
+  renderCustomTabButtons();
+  renderCustomTabPanels();
+}
+
+function getCustomTab(tabId) { return customTabs.find(t => t.id === tabId); }
+
+function updateCustomTabName(tabId, value) {
+  const tab = getCustomTab(tabId);
+  if (tab) { tab.name = value || 'New Tab'; save(); renderCustomTabButtons(); }
+}
+
+function updateCustomTabSectionName(tabId, key, value) {
+  const tab = getCustomTab(tabId);
+  if (tab) { tab[key] = value || (key === 'inputSectionName' ? 'Input Section' : 'Results Section'); save(); }
+}
+
+// ── Field schema management ──
+function addField(tabId) {
+  const tab = getCustomTab(tabId);
+  if (!tab) return;
+  const name = prompt('Field name:');
+  if (!name) return;
+  const typeChoice = prompt('Field type:\n1 = Text\n2 = Number\n3 = Link (URL)\n4 = Dropdown\n5 = Textarea\n\nEnter 1-5:', '1');
+  const typeMap = {'1':'text','2':'number','3':'link','4':'dropdown','5':'textarea'};
+  const type = typeMap[typeChoice] || 'text';
+  const field = { id: uid(), name, type };
+  if (type === 'dropdown') field.options = ['Option 1','Option 2'];
+  tab.fields.push(field);
+  // Add blank value to all existing entries
+  tab.entries.forEach(e => { e[field.id] = ''; });
+  save();
+  renderCustomTabPanel(tabId);
+}
+
+function deleteField(tabId, fieldId) {
+  const tab = getCustomTab(tabId);
+  if (!tab) return;
+  if (!confirm('Delete this field? Data in this field will be lost.')) return;
+  tab.fields = tab.fields.filter(f => f.id !== fieldId);
+  tab.entries.forEach(e => { delete e[fieldId]; });
+  save();
+  renderCustomTabPanel(tabId);
+}
+
+function renameField(tabId, fieldId) {
+  const tab = getCustomTab(tabId);
+  if (!tab) return;
+  const field = tab.fields.find(f => f.id === fieldId);
+  if (!field) return;
+  const newName = prompt('Rename field:', field.name);
+  if (newName) { field.name = newName; save(); renderCustomTabPanel(tabId); }
+}
+
+function editDropdownOptions(tabId, fieldId) {
+  const tab = getCustomTab(tabId);
+  if (!tab) return;
+  const field = tab.fields.find(f => f.id === fieldId);
+  if (!field || field.type !== 'dropdown') return;
+  const current = (field.options || []).join('\n');
+  const result = prompt('Edit dropdown options (one per line):', current);
+  if (result !== null) {
+    field.options = result.split('\n').map(s => s.trim()).filter(Boolean);
+    save();
+    renderCustomTabPanel(tabId);
+  }
+}
+
+// ── Entry management ──
+function addEntry(tabId) {
+  const tab = getCustomTab(tabId);
+  if (!tab) return;
+  tab.entries.push(createEntry(tab.fields));
+  save();
+  renderCustomTabPanel(tabId);
+}
+
+function deleteEntry(tabId, entryId) {
+  const tab = getCustomTab(tabId);
+  if (!tab) return;
+  tab.entries = tab.entries.filter(e => e.id !== entryId);
+  save();
+  renderCustomTabPanel(tabId);
+}
+
+function updateEntry(tabId, entryId, fieldId, value) {
+  const tab = getCustomTab(tabId);
+  if (!tab) return;
+  const entry = tab.entries.find(e => e.id === entryId);
+  if (entry) { entry[fieldId] = value; save(); }
+  // Also refresh the results sub-panel if visible
+  const resultsPanel = document.getElementById('ctab-results-'+tabId);
+  if (resultsPanel && !resultsPanel.classList.contains('hidden')) renderCustomTabResults(tabId);
+}
+
+// ════════════════════════════════════════════════════════════
+//  RENDER: EXISTING TABS (unchanged)
+// ════════════════════════════════════════════════════════════
+function renderInput() {
+  const data=getData(), container=document.getElementById('inputSections');
+  if (!data.length) { container.innerHTML='<div class="empty">No sections yet. Add your first section.</div>'; return; }
+  container.innerHTML = data.map(section => `
+    <div class="input-section">
+      <div class="input-section-top">
+        <input class="section-name" value="${escapeHtml(section.name)}" oninput="updateSection('${section.id}',this.value)" />
+        <button class="btn-danger" onclick="deleteSection('${section.id}')">Delete</button>
+      </div>
+      ${section.metrics.map((metric,idx) => `
+        <div class="metric-editor">
+          <div class="metric-title-row">
+            <div class="move-controls">
+              <button class="btn-move" onclick="moveMetric('${section.id}','${metric.id}',-1)" ${idx===0?'disabled':''}>▲</button>
+              <button class="btn-move" onclick="moveMetric('${section.id}','${metric.id}',1)" ${idx===section.metrics.length-1?'disabled':''}>▼</button>
+            </div>
+            <input value="${escapeHtml(metric.name)}" placeholder="Metric name" oninput="updateMetric('${section.id}','${metric.id}','name',this.value)" />
+            <select onchange="updateMetric('${section.id}','${metric.id}','type',this.value)">
+              <option value="target" ${metric.type==='target'?'selected':''}>Target Progress</option>
+              <option value="conversion" ${metric.type==='conversion'?'selected':''}>Conversion Rate</option>
+              <option value="response" ${metric.type==='response'?'selected':''}>Response Rate</option>
+              <option value="custom" ${metric.type==='custom'?'selected':''}>Custom Percentage</option>
+            </select>
+            <select onchange="updateMetric('${section.id}','${metric.id}','display',this.value)">
+              <option value="circle" ${metric.display==='circle'?'selected':''}>Progress Circle</option>
+              <option value="bar" ${metric.display==='bar'?'selected':''}>Progress Bar</option>
+              <option value="card" ${metric.display==='card'?'selected':''}>Percentage Card</option>
+            </select>
+            <button class="btn-card ${metric.showInSummary?'active':''}" onclick="toggleSummaryCard('${section.id}','${metric.id}')">${metric.showInSummary?'In Cards':'Add to Cards'}</button>
+            <button class="btn-danger" onclick="deleteMetric('${section.id}','${metric.id}')">Delete Metric</button>
+          </div>
+          <div class="editor-grid">
+            ${['daily','weekly','monthly'].map(p=>`
+              <div><label>${p} ${labelA(metric.type)}</label><input type="number" value="${metric[p+'A']}" oninput="updateMetric('${section.id}','${metric.id}','${p}A',this.value)" /></div>
+              <div><label>${p} ${labelB(metric.type)}</label><input type="number" value="${metric[p+'B']}" oninput="updateMetric('${section.id}','${metric.id}','${p}B',this.value)" ${metric.type==='custom'?'disabled':''} /></div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('')}
+      <div style="margin-top:14px;"><button class="btn-blue" onclick="addMetric('${section.id}')">+ Add Metric</button></div>
+    </div>
+  `).join('');
+}
+
+function renderResults() {
+  const data=getData(), summary=document.getElementById('summaryGrid'), container=document.getElementById('resultsSections');
+  const allMetrics=data.flatMap(s=>s.metrics.map(m=>({...m,section:s.name})));
+  const summaryMetrics=allMetrics.filter(m=>m.showInSummary);
+  summary.innerHTML = summaryMetrics.length
+    ? summaryMetrics.map(m=>`<div class="summary-card"><h3>${escapeHtml(m.name)} — ${escapeHtml(MONTHS[activeMonthIndex])}</h3>${summaryVisual(m)}</div>`).join('')
+    : '<div class="empty">No summary cards selected. Go to the Input tab and click "Add to Cards" on any metric.</div>';
+  if (!data.length) { container.innerHTML='<div class="empty">No results yet.</div>'; return; }
+  container.innerHTML = data.map(section=>{
+    const scores=section.metrics.map(m=>calc(m,'monthly')).filter(v=>v!==null);
+    const avg=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):null;
+    return `<div class="section">
+      <div class="section-header"><span>${escapeHtml(section.name)}</span><span>Monthly Avg: ${formatPct(avg)}</span></div>
+      <table><thead><tr><th>Metric</th><th>Daily</th><th>Progress</th><th>Weekly</th><th>Progress</th><th>Monthly</th><th>Progress</th></tr></thead>
+      <tbody>${section.metrics.map(m=>`<tr><td><strong>${escapeHtml(m.name)}</strong></td><td>${ratioText(m,'daily')}</td><td>${visual(m,'daily')}</td><td>${ratioText(m,'weekly')}</td><td>${visual(m,'weekly')}</td><td>${ratioText(m,'monthly')}</td><td>${visual(m,'monthly')}</td></tr>`).join('')}</tbody></table>
+    </div>`;
+  }).join('');
+}
+
+function renderProjectInput() {
+  const container=document.getElementById('projectInputSections');
+  if (!projectData.length) { container.innerHTML='<div class="empty">No project sections yet.</div>'; return; }
+  container.innerHTML = projectData.map(section=>`
+    <div class="input-section">
+      <div class="input-section-top">
+        <input class="section-name" value="${escapeHtml(section.name)}" oninput="updateProjectSection('${section.id}',this.value)" />
+        <button class="btn-danger" onclick="deleteProjectSection('${section.id}')">Delete</button>
+      </div>
+      ${section.tasks.map(task=>`
+        <div class="task-editor">
+          <div class="task-title-row">
+            <input value="${escapeHtml(task.name)}" placeholder="Task name" oninput="updateTask('${section.id}','${task.id}','name',this.value)" />
+            <select onchange="updateTask('${section.id}','${task.id}','status',this.value)">
+              <option value="On Hold" ${task.status==='On Hold'?'selected':''}>On Hold</option>
+              <option value="In Progress" ${task.status==='In Progress'?'selected':''}>In Progress</option>
+              <option value="Pending" ${task.status==='Pending'?'selected':''}>Pending</option>
+              <option value="Done" ${task.status==='Done'?'selected':''}>Done</option>
+            </select>
+            <button class="btn-danger" onclick="deleteTask('${section.id}','${task.id}')">Delete Task</button>
+          </div>
+        </div>
+      `).join('')}
+      <div style="margin-top:14px;"><button class="btn-blue" onclick="addTask('${section.id}')">+ Add Task</button></div>
+    </div>
+  `).join('');
+}
+
+function renderProjectResults() {
+  // ── Cards (unchanged) ──
+  const container=document.getElementById('projectResultsGrid');
+  if (!projectData.length) { container.innerHTML='<div class="empty">No project results yet.</div>'; return; }
+  container.innerHTML = projectData.map(s=>`
+    <div class="project-card"><h3>${escapeHtml(s.name)}</h3>${projectVisual(s)}</div>
+  `).join('');
+
+  // ── NEW: task list below cards ──
+  const listContainer = document.getElementById('projectTaskListContainer');
+  if (!projectData.length) { listContainer.innerHTML=''; return; }
+  listContainer.innerHTML = projectData.map(section => {
+    if (!section.tasks.length) return '';
+    const rows = section.tasks.map(task => {
+      const statusStyles = {'Pending':'background:#FEF9C3;color:#854D0E;','In Progress':'background:#DBEAFE;color:#1E40AF;','Done':'background:#DCFCE7;color:#166534;','On Hold':'background:#F3F4F6;color:#374151;'};
+      const sStyle = statusStyles[task.status] || 'background:#F3F4F6;color:#374151;';
+      return `<div class="project-task-row">
+        <span class="project-task-name">${escapeHtml(task.name)}</span>
+        <span class="ptask-status" style="${sStyle}">${escapeHtml(task.status)}</span>
+      </div>`;
+    }).join('');
+    return `<div class="project-task-list" style="margin-bottom:16px;">
+      <div class="project-task-list-header">${escapeHtml(section.name)}</div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+function renderProject() { renderProjectInput(); renderProjectResults(); }
+
+// ════════════════════════════════════════════════════════════
+//  NEW: RENDER CUSTOM TABS
+// ════════════════════════════════════════════════════════════
+function renderCustomTabButtons() {
+  const container = document.getElementById('customTabBtns');
+  container.innerHTML = customTabs.map(tab =>
+    `<button class="tab custom-tab-btn ${activeCustomTabId===tab.id?'active':''}" data-tabid="${tab.id}" onclick="showCustomTab('${tab.id}')">${escapeHtml(tab.name)}</button>`
+  ).join('');
+}
+
+function renderCustomTabPanels() {
+  const container = document.getElementById('customTabPanels');
+  if (!customTabs.length) { container.innerHTML=''; return; }
+  container.innerHTML = customTabs.map(tab => `<div id="ctab-panel-${tab.id}" class="hidden"></div>`).join('');
+}
+
+function renderCustomTabPanel(tabId) {
+  const tab = getCustomTab(tabId);
+  if (!tab) return;
+  const panel = document.getElementById('ctab-panel-'+tabId);
+  if (!panel) return;
+  panel.classList.remove('hidden');
+
+  panel.innerHTML = `
+    <div class="ctab-container">
+      <!-- Tab name + delete -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <input class="section-name" style="font-size:22px;width:auto;" value="${escapeHtml(tab.name)}"
+            oninput="updateCustomTabName('${tabId}',this.value)" placeholder="Tab name" />
+        </div>
+        <button class="btn-danger" onclick="deleteCustomTab('${tabId}')">Delete Tab</button>
+      </div>
+
+      <!-- Sub-tabs: Input / Results -->
+      <div class="ctab-sub-tabs">
+        <button class="ctab-sub-tab active" id="ctab-input-btn-${tabId}" onclick="switchCtabSubTab('${tabId}','input')">
+          ${escapeHtml(tab.inputSectionName)}
+        </button>
+        <button class="ctab-sub-tab" id="ctab-results-btn-${tabId}" onclick="switchCtabSubTab('${tabId}','results')">
+          ${escapeHtml(tab.resultsSectionName)}
+        </button>
+      </div>
+
+      <!-- INPUT panel -->
+      <div id="ctab-input-${tabId}">
+        <!-- Section name -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+          <input class="section-name" value="${escapeHtml(tab.inputSectionName)}"
+            oninput="updateCustomTabSectionName('${tabId}','inputSectionName',this.value);refreshCtabSubTabLabels('${tabId}')"
+            placeholder="Section name" style="max-width:320px;" />
+        </div>
+
+        <!-- Field schema bar -->
+        <div class="field-schema-bar">
+          <h4>Fields — <span style="font-weight:400;text-transform:none;letter-spacing:0;">click a field name to rename · click options to edit dropdown choices</span></h4>
+          <div class="field-list">
+            ${tab.fields.map(f => `
+              <span class="field-chip">
+                <span class="field-chip-name" onclick="renameField('${tabId}','${f.id}')" title="Click to rename">${escapeHtml(f.name)} <em style="font-weight:400;color:var(--muted);font-size:10px;">${f.type}</em></span>
+                ${f.type==='dropdown'?`<span class="field-chip-name" style="color:var(--navy);font-size:11px;" onclick="editDropdownOptions('${tabId}','${f.id}')" title="Edit options">[opts]</span>`:''}
+                <button class="field-chip-del" onclick="deleteField('${tabId}','${f.id}')" title="Remove field">×</button>
+              </span>
+            `).join('')}
+          </div>
+          <button class="btn-blue" style="font-size:12px;padding:7px 14px;" onclick="addField('${tabId}')">+ Add Field</button>
+        </div>
+
+        <!-- Entries -->
+        <div id="ctab-entries-${tabId}">
+          ${renderEntries(tab)}
+        </div>
+        <button class="btn-blue" style="margin-top:8px;" onclick="addEntry('${tabId}')">+ Add Entry</button>
+      </div>
+
+      <!-- RESULTS panel -->
+      <div id="ctab-results-${tabId}" class="hidden">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+          <input class="section-name" value="${escapeHtml(tab.resultsSectionName)}"
+            oninput="updateCustomTabSectionName('${tabId}','resultsSectionName',this.value);refreshCtabSubTabLabels('${tabId}')"
+            placeholder="Section name" style="max-width:320px;" />
+        </div>
+        <div id="ctab-results-content-${tabId}">
+          ${renderResultsTable(tab)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderEntries(tab) {
+  if (!tab.entries.length) return '<div class="empty">No entries yet. Click "+ Add Entry" to start.</div>';
+  return tab.entries.map(entry => `
+    <div class="ctab-entry">
+      <div class="ctab-entry-top">
+        <button class="btn-danger" style="font-size:12px;padding:5px 10px;" onclick="deleteEntry('${tab.id}','${entry.id}')">Delete</button>
+      </div>
+      <div class="ctab-entry-fields">
+        ${tab.fields.map(field => `
+          <div>
+            <label>${escapeHtml(field.name)}</label>
+            ${renderFieldInput(tab.id, entry, field)}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderFieldInput(tabId, entry, field) {
+  const val = escapeHtml(entry[field.id] || '');
+  const onChange = `updateEntry('${tabId}','${entry.id}','${field.id}',this.value)`;
+  if (field.type === 'dropdown') {
+    const opts = (field.options || []).map(o =>
+      `<option value="${escapeHtml(o)}" ${entry[field.id]===o?'selected':''}>${escapeHtml(o)}</option>`
+    ).join('');
+    return `<select onchange="${onChange}"><option value="">— select —</option>${opts}</select>`;
+  }
+  if (field.type === 'textarea') return `<textarea oninput="${onChange}">${val}</textarea>`;
+  if (field.type === 'number')   return `<input type="number" value="${val}" oninput="${onChange}" />`;
+  if (field.type === 'link')     return `<input type="url" value="${val}" placeholder="https://…" oninput="${onChange}" />`;
+  return `<input type="text" value="${val}" oninput="${onChange}" />`;
+}
+
+function renderResultsTable(tab) {
+  if (!tab.fields.length) return '<div class="empty">No fields defined.</div>';
+  if (!tab.entries.length) return '<div class="empty">No entries yet. Add data in the Input section.</div>';
+  const headers = tab.fields.map(f => `<th>${escapeHtml(f.name)}</th>`).join('');
+  const rows = tab.entries.map(entry => {
+    const cells = tab.fields.map(field => {
+      const val = entry[field.id] || '';
+      if (field.type === 'link' && val) return `<td><a href="${escapeHtml(val)}" target="_blank" class="result-link" rel="noopener noreferrer">${escapeHtml(val)}</a></td>`;
+      if (field.type === 'dropdown' && val) {
+        const cls = 'status-'+val.replace(/\s/g,'');
+        return `<td><span class="status-badge ${cls}">${escapeHtml(val)}</span></td>`;
+      }
+      return `<td>${escapeHtml(val)}</td>`;
+    }).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
+  return `<table class="ctab-results-table"><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function switchCtabSubTab(tabId, sub) {
+  const inputPanel   = document.getElementById('ctab-input-'+tabId);
+  const resultsPanel = document.getElementById('ctab-results-'+tabId);
+  const inputBtn     = document.getElementById('ctab-input-btn-'+tabId);
+  const resultsBtn   = document.getElementById('ctab-results-btn-'+tabId);
+  if (!inputPanel) return;
+  inputPanel.classList.toggle('hidden',   sub !== 'input');
+  resultsPanel.classList.toggle('hidden', sub !== 'results');
+  inputBtn.classList.toggle('active',   sub === 'input');
+  resultsBtn.classList.toggle('active', sub === 'results');
+  if (sub === 'results') {
+    const tab = getCustomTab(tabId);
+    if (tab) document.getElementById('ctab-results-content-'+tabId).innerHTML = renderResultsTable(tab);
+  }
+}
+
+function refreshCtabSubTabLabels(tabId) {
+  const tab = getCustomTab(tabId);
+  if (!tab) return;
+  const inputBtn   = document.getElementById('ctab-input-btn-'+tabId);
+  const resultsBtn = document.getElementById('ctab-results-btn-'+tabId);
+  if (inputBtn)   inputBtn.textContent   = tab.inputSectionName;
+  if (resultsBtn) resultsBtn.textContent = tab.resultsSectionName;
+}
+
+// ════════════════════════════════════════════════════════════
+//  MAIN RENDER
+// ════════════════════════════════════════════════════════════
+function render() {
+  renderMonthTabs();
+  renderTabNames();
+  renderInput();
+  renderResults();
+  renderProject();
+  showProjectSubTab(activeProjectSubTab);
+  renderCustomTabButtons();
+  renderCustomTabPanels();
+  if (activeCustomTabId) {
+    document.getElementById('customTabPanels').classList.remove('hidden');
+    renderCustomTabPanel(activeCustomTabId);
+    // deactivate built-in tabs
+    ['input','results','project'].forEach(t => {
+      document.getElementById(t+'Tab').classList.add('hidden');
+      document.getElementById(t+'TabBtn').classList.remove('active');
+    });
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  EVENT LISTENERS
+// ════════════════════════════════════════════════════════════
+document.getElementById('inputTabBtn').addEventListener('click',   () => showTab('input'));
+document.getElementById('resultsTabBtn').addEventListener('click', () => showTab('results'));
+document.getElementById('projectTabBtn').addEventListener('click', () => showTab('project'));
+document.getElementById('projectInputSubBtn').addEventListener('click',   () => showProjectSubTab('input'));
+document.getElementById('projectResultsSubBtn').addEventListener('click', () => showProjectSubTab('results'));
+document.getElementById('addSectionBtn').addEventListener('click',         addSection);
+document.getElementById('importTargetsBtn').addEventListener('click',      importTargetsFromPreviousMonth);
+document.getElementById('addProjectSectionBtn').addEventListener('click',  addProjectSection);
+document.getElementById('clearAchievedBtn').addEventListener('click',      clearAchievedData);
+document.getElementById('addCustomTabBtn').addEventListener('click',       addCustomTab);  // NEW
+document.getElementById('tabNameInput').addEventListener('input',          e => updateTabName('input',e.target.value));
+document.getElementById('tabNameResults').addEventListener('input',        e => updateTabName('results',e.target.value));
+document.getElementById('tabNameProject').addEventListener('input',        e => updateTabName('project',e.target.value));
+document.getElementById('tabNameProjectInput').addEventListener('input',   e => updateTabName('projectInput',e.target.value));
+document.getElementById('tabNameProjectResults').addEventListener('input', e => updateTabName('projectResults',e.target.value));
+
+// ── Expose globals ──
+window.doLogin=doLogin; window.doLogout=doLogout; window.switchMonth=switchMonth;
+window.addSection=addSection; window.deleteSection=deleteSection;
+window.addMetric=addMetric; window.deleteMetric=deleteMetric;
+window.updateSection=updateSection; window.updateMetric=updateMetric;
+window.toggleSummaryCard=toggleSummaryCard; window.moveMetric=moveMetric;
+window.addProjectSection=addProjectSection; window.deleteProjectSection=deleteProjectSection;
+window.updateProjectSection=updateProjectSection;
+window.addTask=addTask; window.deleteTask=deleteTask; window.updateTask=updateTask;
+window.loadAllDataFromFirebase=loadAllDataFromFirebase; window.render=render;
+// NEW globals
+window.showCustomTab=showCustomTab; window.deleteCustomTab=deleteCustomTab;
+window.updateCustomTabName=updateCustomTabName; window.updateCustomTabSectionName=updateCustomTabSectionName;
+window.addField=addField; window.deleteField=deleteField; window.renameField=renameField;
+window.editDropdownOptions=editDropdownOptions;
+window.addEntry=addEntry; window.deleteEntry=deleteEntry; window.updateEntry=updateEntry;
+window.switchCtabSubTab=switchCtabSubTab; window.refreshCtabSubTabLabels=refreshCtabSubTabLabels;
+</script>
+</body>
+</html>
