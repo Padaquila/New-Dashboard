@@ -144,17 +144,53 @@
     .ctab-sub-tab { background:white; color:var(--muted); padding:10px 20px; border-radius:8px; font-weight:700; font-size:13px; border:1px solid var(--border); cursor:pointer; }
     .ctab-sub-tab.active { background:var(--navy); color:white; border-color:var(--navy); }
 
-    /* Field schema editor */
-    .field-schema-bar { background:#EEF2FF; border:1px solid #C7D7FE; border-radius:8px; padding:14px; margin-bottom:16px; }
-    .field-schema-bar h4 { margin:0 0 10px; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.6px; color:var(--navy); }
-    .field-list { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
-    .field-chip { display:inline-flex; align-items:center; gap:6px; background:white; border:1px solid var(--border); border-radius:6px; padding:5px 10px; font-size:12px; font-weight:700; color:var(--text); }
-    .field-chip-name { cursor:pointer; }
-    .field-chip-name:hover { color:var(--navy); text-decoration:underline; }
-    .field-chip-del { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:0 0 0 2px; line-height:1; }
-    .field-chip-del:hover { color:var(--red); }
-    .field-add-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .field-add-row input,.field-add-row select { padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; background:white; }
+    /* ── FIELD SCHEMA BAR ── */
+    .field-schema-bar { background:#EEF2FF; border:1px solid #C7D7FE; border-radius:10px; padding:16px; margin-bottom:16px; }
+    .field-schema-bar h4 { margin:0 0 12px; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.6px; color:var(--navy); }
+    .field-list { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+    .field-chip { display:inline-flex; align-items:center; gap:0; background:white; border:1px solid var(--border); border-radius:8px; overflow:hidden; font-size:12px; font-weight:700; color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,.06); }
+    .field-chip-edit { background:none; border:none; padding:7px 10px; cursor:pointer; font-size:12px; font-weight:700; color:var(--text); font-family:inherit; display:flex; align-items:center; gap:6px; }
+    .field-chip-edit:hover { background:#F0F4FF; color:var(--navy); }
+    .field-chip-type { font-size:10px; font-weight:600; color:var(--muted); background:#F0F2F5; padding:2px 6px; border-radius:4px; }
+    .field-chip-del { background:none; border:none; border-left:1px solid var(--border); color:var(--muted); cursor:pointer; font-size:15px; padding:7px 10px; line-height:1; font-family:inherit; }
+    .field-chip-del:hover { background:#FEE2E2; color:var(--red); }
+
+    /* ── FIELD MODAL ── */
+    .field-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px; }
+    .field-modal { background:white; border-radius:16px; padding:28px; width:100%; max-width:480px; box-shadow:0 20px 60px rgba(0,0,0,.2); }
+    .field-modal h3 { margin:0 0 20px; font-size:16px; font-weight:800; color:var(--navy); }
+    .fm-field { margin-bottom:16px; }
+    .fm-field label { display:block; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin-bottom:6px; }
+    .fm-field input, .fm-field select { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; font-family:inherit; color:var(--text); outline:none; background:white; transition:border-color .15s; }
+    .fm-field input:focus, .fm-field select:focus { border-color:var(--navy); }
+    .fm-type-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .fm-type-btn { padding:10px 8px; border:2px solid var(--border); border-radius:8px; background:white; cursor:pointer; font-size:12px; font-weight:700; color:var(--muted); text-align:center; font-family:inherit; transition:all .15s; }
+    .fm-type-btn:hover { border-color:var(--navy); color:var(--navy); background:#EEF2FF; }
+    .fm-type-btn.selected { border-color:var(--navy); background:var(--navy); color:white; }
+    .fm-type-icon { display:block; font-size:18px; margin-bottom:4px; }
+    .fm-divider { height:1px; background:var(--border); margin:18px 0; }
+
+    /* Dropdown options editor inside modal */
+    .fm-opts-list { display:flex; flex-direction:column; gap:6px; margin-bottom:10px; max-height:200px; overflow-y:auto; }
+    .fm-opt-row { display:flex; gap:8px; align-items:center; }
+    .fm-opt-row input { flex:1; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:inherit; outline:none; }
+    .fm-opt-row input:focus { border-color:var(--navy); }
+    .fm-opt-color { width:32px; height:32px; border:1px solid var(--border); border-radius:6px; cursor:pointer; padding:2px; background:white; flex-shrink:0; }
+    .fm-opt-del { background:none; border:1px solid var(--border); border-radius:6px; color:var(--muted); cursor:pointer; padding:6px 9px; font-size:14px; line-height:1; flex-shrink:0; }
+    .fm-opt-del:hover { background:#FEE2E2; border-color:#FCA5A5; color:var(--red); }
+    .fm-add-opt { background:#EEF2FF; color:var(--navy); border:1px dashed #C7D7FE; border-radius:6px; padding:7px 14px; font-size:12px; font-weight:700; cursor:pointer; width:100%; font-family:inherit; }
+    .fm-add-opt:hover { background:#E0E7FF; }
+
+    .fm-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+    .fm-btn-cancel { background:transparent; border:1px solid var(--border); color:var(--muted); padding:10px 20px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .fm-btn-cancel:hover { background:var(--bg); }
+    .fm-btn-save { background:var(--navy); color:white; border:none; padding:10px 24px; border-radius:8px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; }
+    .fm-btn-save:hover { background:#002B80; }
+    .fm-btn-danger { background:#FEE2E2; color:#991B1B; border:none; padding:10px 20px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; margin-right:auto; }
+    .fm-btn-danger:hover { background:#FECACA; }
+
+    /* Option color swatches in results */
+    .opt-badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.3px; }
 
     /* Entry rows in custom tab input */
     .ctab-entry { border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:10px; background:#F7F9FC; }
@@ -171,10 +207,7 @@
     .ctab-results-table tr:last-child td { border-bottom:none; }
     .ctab-results-table tr:hover td { background:#F7F9FC; }
 
-    /* Dropdown option editor */
-    .dropdown-opts { margin-top:8px; }
-    .dropdown-opt-row { display:flex; gap:6px; align-items:center; margin-bottom:4px; }
-    .dropdown-opt-row input { flex:1; padding:6px 10px; border:1px solid var(--border); border-radius:6px; font-size:12px; }
+    /* dropdown-opts CSS moved to modal system above */
 
     /* Status badge */
     .status-badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; }
@@ -801,55 +834,181 @@ function updateCustomTabSectionName(tabId, key, value) {
 }
 
 // ── Field schema management ──
-function addField(tabId) {
+
+// ── MODAL: open/close ──
+let _modalTabId = null;
+let _modalFieldId = null; // null = adding new, string = editing existing
+
+function openFieldModal(tabId, fieldId) {
+  _modalTabId = tabId;
+  _modalFieldId = fieldId || null;
   const tab = getCustomTab(tabId);
   if (!tab) return;
-  const name = prompt('Field name:');
-  if (!name) return;
-  const typeChoice = prompt('Field type:\n1 = Text\n2 = Number\n3 = Link (URL)\n4 = Dropdown\n5 = Textarea\n\nEnter 1-5:', '1');
-  const typeMap = {'1':'text','2':'number','3':'link','4':'dropdown','5':'textarea'};
-  const type = typeMap[typeChoice] || 'text';
-  const field = { id: uid(), name, type };
-  if (type === 'dropdown') field.options = ['Option 1','Option 2'];
-  tab.fields.push(field);
-  // Add blank value to all existing entries
-  tab.entries.forEach(e => { e[field.id] = ''; });
-  save();
-  renderCustomTabPanel(tabId);
+  const field = fieldId ? tab.fields.find(f => f.id === fieldId) : null;
+  const isEdit = !!field;
+
+  // Remove any existing modal
+  const existing = document.getElementById('fieldModalOverlay');
+  if (existing) existing.remove();
+
+  // Default state
+  const fname  = field ? field.name : '';
+  const ftype  = field ? field.type : 'text';
+  const fopts  = field ? (field.options || []) : [];
+  const fcolors= field ? (field.optionColors || {}) : {};
+
+  const types = [
+    { key:'text',     icon:'Aa',  label:'Text' },
+    { key:'number',   icon:'#',   label:'Number' },
+    { key:'link',     icon:'🔗',  label:'Link' },
+    { key:'textarea', icon:'☰',   label:'Note' },
+    { key:'dropdown', icon:'▾',   label:'Dropdown' },
+  ];
+
+  const typeButtons = types.map(t =>
+    `<button type="button" class="fm-type-btn ${ftype===t.key?'selected':''}" data-type="${t.key}" onclick="fmSelectType(this,'${t.key}')">
+      <span class="fm-type-icon">${t.icon}</span>${t.label}
+    </button>`
+  ).join('');
+
+  const optsHtml = fopts.map((opt,i) => fmOptRow(opt, fcolors[opt] || '', i)).join('');
+  const optsVisible = ftype === 'dropdown' ? '' : 'display:none';
+
+  const modal = document.createElement('div');
+  modal.id = 'fieldModalOverlay';
+  modal.className = 'field-modal-overlay';
+  modal.innerHTML = `
+    <div class="field-modal" onclick="event.stopPropagation()">
+      <h3>${isEdit ? 'Edit Field' : 'Add Field'}</h3>
+
+      <div class="fm-field">
+        <label>Field Name</label>
+        <input type="text" id="fm-name" value="${fname.replace(/"/g,'&quot;')}" placeholder="e.g. Phone Number, Status, Notes…" autofocus />
+      </div>
+
+      <div class="fm-field">
+        <label>Field Type</label>
+        <div class="fm-type-grid" id="fm-type-grid">${typeButtons}</div>
+        <input type="hidden" id="fm-type" value="${ftype}" />
+      </div>
+
+      <div class="fm-divider" id="fm-opts-divider" style="${optsVisible}"></div>
+
+      <div id="fm-opts-section" style="${optsVisible}">
+        <div class="fm-field">
+          <label>Dropdown Options <span style="font-weight:400;text-transform:none;font-size:10px;color:var(--muted);">— set a colour for each option (optional)</span></label>
+          <div class="fm-opts-list" id="fm-opts-list">${optsHtml}</div>
+          <button type="button" class="fm-add-opt" onclick="fmAddOpt()">+ Add Option</button>
+        </div>
+      </div>
+
+      <div class="fm-footer">
+        ${isEdit ? `<button type="button" class="fm-btn-danger" onclick="fmDeleteField()">Delete Field</button>` : ''}
+        <button type="button" class="fm-btn-cancel" onclick="closeFieldModal()">Cancel</button>
+        <button type="button" class="fm-btn-save" onclick="fmSave()">Save Field</button>
+      </div>
+    </div>
+  `;
+  modal.addEventListener('click', closeFieldModal);
+  document.body.appendChild(modal);
+  document.getElementById('fm-name').focus();
 }
 
-function deleteField(tabId, fieldId) {
-  const tab = getCustomTab(tabId);
-  if (!tab) return;
-  if (!confirm('Delete this field? Data in this field will be lost.')) return;
-  tab.fields = tab.fields.filter(f => f.id !== fieldId);
-  tab.entries.forEach(e => { delete e[fieldId]; });
-  save();
-  renderCustomTabPanel(tabId);
+function fmOptRow(value, color, idx) {
+  const safeVal = value.replace(/"/g,'&quot;');
+  return `<div class="fm-opt-row" id="fm-opt-${idx}">
+    <input type="text" value="${safeVal}" placeholder="Option label" oninput="fmSyncOptValue(this)" />
+    <input type="color" class="fm-opt-color" value="${color || '#6366F1'}" title="Badge colour" />
+    <button type="button" class="fm-opt-del" onclick="fmDelOpt(this)" title="Remove">×</button>
+  </div>`;
 }
 
-function renameField(tabId, fieldId) {
-  const tab = getCustomTab(tabId);
-  if (!tab) return;
-  const field = tab.fields.find(f => f.id === fieldId);
-  if (!field) return;
-  const newName = prompt('Rename field:', field.name);
-  if (newName) { field.name = newName; save(); renderCustomTabPanel(tabId); }
+function fmSelectType(btn, type) {
+  document.querySelectorAll('#fieldModalOverlay .fm-type-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('fm-type').value = type;
+  const show = type === 'dropdown';
+  document.getElementById('fm-opts-section').style.display  = show ? '' : 'none';
+  document.getElementById('fm-opts-divider').style.display  = show ? '' : 'none';
 }
 
-function editDropdownOptions(tabId, fieldId) {
-  const tab = getCustomTab(tabId);
+function fmAddOpt() {
+  const list = document.getElementById('fm-opts-list');
+  const idx = list.children.length;
+  const div = document.createElement('div');
+  div.innerHTML = fmOptRow('', '#6366F1', idx);
+  list.appendChild(div.firstElementChild);
+  list.lastElementChild.querySelector('input[type=text]').focus();
+}
+
+function fmDelOpt(btn) {
+  btn.closest('.fm-opt-row').remove();
+}
+
+function fmSyncOptValue() { /* live sync handled on save */ }
+
+function fmSave() {
+  const tab = getCustomTab(_modalTabId);
   if (!tab) return;
-  const field = tab.fields.find(f => f.id === fieldId);
-  if (!field || field.type !== 'dropdown') return;
-  const current = (field.options || []).join('\n');
-  const result = prompt('Edit dropdown options (one per line):', current);
-  if (result !== null) {
-    field.options = result.split('\n').map(s => s.trim()).filter(Boolean);
-    save();
-    renderCustomTabPanel(tabId);
+  const nameEl = document.getElementById('fm-name');
+  const name = nameEl.value.trim();
+  if (!name) { nameEl.style.borderColor='var(--red)'; nameEl.focus(); return; }
+  const type = document.getElementById('fm-type').value;
+
+  // Collect options + colors
+  const optRows = document.querySelectorAll('#fm-opts-list .fm-opt-row');
+  const options = [];
+  const optionColors = {};
+  optRows.forEach(row => {
+    const label = row.querySelector('input[type=text]').value.trim();
+    const color = row.querySelector('input[type=color]').value;
+    if (label) { options.push(label); optionColors[label] = color; }
+  });
+
+  if (_modalFieldId) {
+    // Edit existing
+    const field = tab.fields.find(f => f.id === _modalFieldId);
+    if (field) {
+      field.name = name;
+      field.type = type;
+      if (options.length || type === 'dropdown') { field.options = options; field.optionColors = optionColors; }
+    }
+  } else {
+    // Add new
+    const field = { id: uid(), name, type };
+    if (options.length || type === 'dropdown') { field.options = options; field.optionColors = optionColors; }
+    tab.fields.push(field);
+    tab.entries.forEach(e => { e[field.id] = ''; });
   }
+
+  save();
+  closeFieldModal();
+  renderCustomTabPanel(_modalTabId);
 }
+
+function fmDeleteField() {
+  const tab = getCustomTab(_modalTabId);
+  if (!tab || !_modalFieldId) return;
+  if (!confirm('Delete this field? All data in it will be lost.')) return;
+  tab.fields = tab.fields.filter(f => f.id !== _modalFieldId);
+  tab.entries.forEach(e => { delete e[_modalFieldId]; });
+  save();
+  closeFieldModal();
+  renderCustomTabPanel(_modalTabId);
+}
+
+function closeFieldModal() {
+  const el = document.getElementById('fieldModalOverlay');
+  if (el) el.remove();
+  _modalTabId = null;
+  _modalFieldId = null;
+}
+
+// Keep these as no-ops / redirects for any existing callers
+function addField(tabId)                       { openFieldModal(tabId, null); }
+function deleteField(tabId, fieldId)           { _modalTabId=tabId; _modalFieldId=fieldId; fmDeleteField(); }
+function renameField(tabId, fieldId)           { openFieldModal(tabId, fieldId); }
+function editDropdownOptions(tabId, fieldId)   { openFieldModal(tabId, fieldId); }
 
 // ── Entry management ──
 function addEntry(tabId) {
@@ -1057,17 +1216,19 @@ function renderCustomTabPanel(tabId) {
 
         <!-- Field schema bar -->
         <div class="field-schema-bar">
-          <h4>Fields — <span style="font-weight:400;text-transform:none;letter-spacing:0;">click a field name to rename · click options to edit dropdown choices</span></h4>
+          <h4>Fields <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">— click any field to edit it, or add a new one</span></h4>
           <div class="field-list">
             ${tab.fields.map(f => `
               <span class="field-chip">
-                <span class="field-chip-name" onclick="renameField('${tabId}','${f.id}')" title="Click to rename">${escapeHtml(f.name)} <em style="font-weight:400;color:var(--muted);font-size:10px;">${f.type}</em></span>
-                ${f.type==='dropdown'?`<span class="field-chip-name" style="color:var(--navy);font-size:11px;" onclick="editDropdownOptions('${tabId}','${f.id}')" title="Edit options">[opts]</span>`:''}
-                <button class="field-chip-del" onclick="deleteField('${tabId}','${f.id}')" title="Remove field">×</button>
+                <button type="button" class="field-chip-edit" onclick="openFieldModal('${tabId}','${f.id}')" title="Edit field">
+                  ${escapeHtml(f.name)}
+                  <span class="field-chip-type">${f.type}${f.options&&f.options.length?' ('+f.options.length+')':''}</span>
+                </button>
+                <button type="button" class="field-chip-del" onclick="openFieldModal('${tabId}','${f.id}')" title="Edit / delete">✎</button>
               </span>
             `).join('')}
           </div>
-          <button class="btn-blue" style="font-size:12px;padding:7px 14px;" onclick="addField('${tabId}')">+ Add Field</button>
+          <button class="btn-blue" style="font-size:12px;padding:8px 16px;" onclick="openFieldModal('${tabId}', null)">+ Add Field</button>
         </div>
 
         <!-- Entries -->
@@ -1114,7 +1275,8 @@ function renderEntries(tab) {
 function renderFieldInput(tabId, entry, field) {
   const val = escapeHtml(entry[field.id] || '');
   const onChange = `updateEntry('${tabId}','${entry.id}','${field.id}',this.value)`;
-  if (field.type === 'dropdown') {
+  // Any field that has options gets a dropdown (dropdown type, or any field with options added)
+  if (field.type === 'dropdown' || (field.options && field.options.length)) {
     const opts = (field.options || []).map(o =>
       `<option value="${escapeHtml(o)}" ${entry[field.id]===o?'selected':''}>${escapeHtml(o)}</option>`
     ).join('');
@@ -1134,9 +1296,15 @@ function renderResultsTable(tab) {
     const cells = tab.fields.map(field => {
       const val = entry[field.id] || '';
       if (field.type === 'link' && val) return `<td><a href="${escapeHtml(val)}" target="_blank" class="result-link" rel="noopener noreferrer">${escapeHtml(val)}</a></td>`;
-      if (field.type === 'dropdown' && val) {
-        const cls = 'status-'+val.replace(/\s/g,'');
-        return `<td><span class="status-badge ${cls}">${escapeHtml(val)}</span></td>`;
+      if ((field.type === 'dropdown' || (field.options && field.options.length)) && val) {
+        const colors = field.optionColors || {};
+        const bg = colors[val] || '#6366F1';
+        // Generate readable text color (dark/light based on bg)
+        const hex = bg.replace('#','');
+        const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);
+        const lum = (0.299*r+0.587*g+0.114*b)/255;
+        const textCol = lum > 0.55 ? '#1A1F36' : '#ffffff';
+        return `<td><span class="opt-badge" style="background:${bg};color:${textCol};">${escapeHtml(val)}</span></td>`;
       }
       return `<td>${escapeHtml(val)}</td>`;
     }).join('');
@@ -1227,6 +1395,9 @@ window.showCustomTab=showCustomTab; window.deleteCustomTab=deleteCustomTab;
 window.updateCustomTabName=updateCustomTabName; window.updateCustomTabSectionName=updateCustomTabSectionName;
 window.addField=addField; window.deleteField=deleteField; window.renameField=renameField;
 window.editDropdownOptions=editDropdownOptions;
+window.openFieldModal=openFieldModal; window.closeFieldModal=closeFieldModal;
+window.fmSelectType=fmSelectType; window.fmAddOpt=fmAddOpt; window.fmDelOpt=fmDelOpt;
+window.fmSyncOptValue=fmSyncOptValue; window.fmSave=fmSave; window.fmDeleteField=fmDeleteField;
 window.addEntry=addEntry; window.deleteEntry=deleteEntry; window.updateEntry=updateEntry;
 window.switchCtabSubTab=switchCtabSubTab; window.refreshCtabSubTabLabels=refreshCtabSubTabLabels;
 </script>
