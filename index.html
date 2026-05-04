@@ -233,35 +233,28 @@
     .result-link:hover { text-decoration:underline; }
 
     /* ── PROJECT STATUS MANAGER ── */
-    /* Inline edit button next to every status select */
-    .status-edit-btn { background:transparent; border:1px solid var(--border); border-radius:6px; padding:6px 9px; font-size:13px; cursor:pointer; color:var(--muted); line-height:1; flex-shrink:0; font-family:inherit; transition:background .13s,color .13s,border-color .13s; }
-    .status-edit-btn:hover { background:#EEF2FF; color:var(--navy); border-color:#C7D7FE; }
-    .status-edit-btn.active { background:#EEF2FF; color:var(--navy); border-color:#C7D7FE; }
-
-    /* Floating status manager popover */
-    .status-popover-overlay { position:fixed; inset:0; z-index:9998; }
-    .status-popover { position:fixed; z-index:9999; background:white; border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 40px rgba(0,0,0,.18); padding:20px; width:320px; max-height:80vh; overflow-y:auto; }
-    .status-popover-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-    .status-popover-header h4 { margin:0; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.7px; color:var(--navy); }
-    .status-popover-close { background:none; border:none; font-size:20px; line-height:1; cursor:pointer; color:var(--muted); padding:0 2px; font-family:inherit; }
-    .status-popover-close:hover { color:var(--red); }
-    .sp-rows { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
-    .sp-row { display:flex; align-items:center; gap:7px; background:#F7F9FC; border:1px solid var(--border); border-radius:8px; padding:7px 8px; }
-    .sp-row-drag { color:var(--grey); font-size:14px; cursor:grab; user-select:none; flex-shrink:0; }
-    .sp-row input[type=text] { flex:1; padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:inherit; outline:none; background:white; min-width:0; }
+    .btn-status-mgr { background:white; border:1px solid var(--border); border-radius:8px; padding:8px 16px; font-size:13px; font-weight:700; cursor:pointer; color:var(--navy); font-family:inherit; display:inline-flex; align-items:center; gap:7px; transition:background .13s,border-color .13s; }
+    .btn-status-mgr:hover { background:#EEF2FF; border-color:#C7D7FE; }
+    .btn-status-mgr.active { background:#EEF2FF; border-color:#C7D7FE; }
+    /* Inline status manager panel — sits in the page flow */
+    .status-panel { background:white; border:1px solid #C7D7FE; border-radius:12px; padding:20px 22px; margin-bottom:22px; }
+    .status-panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .status-panel-header h4 { margin:0; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.8px; color:var(--navy); }
+    .status-panel-header span { font-size:11px; font-weight:400; text-transform:none; letter-spacing:0; color:var(--muted); margin-left:8px; }
+    .sp-rows { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+    .sp-row { display:flex; align-items:center; gap:8px; background:#F7F9FC; border:1px solid var(--border); border-radius:8px; padding:8px 10px; }
+    .sp-row input[type=text] { flex:1; padding:7px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:inherit; outline:none; background:white; min-width:0; }
     .sp-row input[type=text]:focus { border-color:var(--navy); }
-    .sp-row-colors { display:flex; gap:4px; flex-shrink:0; }
-    .sp-row input[type=color] { width:28px; height:28px; border:1px solid var(--border); border-radius:5px; cursor:pointer; padding:1px; background:white; flex-shrink:0; }
-    .sp-done-btn { width:26px; height:26px; border-radius:50%; border:2px solid var(--border); background:white; cursor:pointer; font-size:12px; line-height:1; flex-shrink:0; display:flex; align-items:center; justify-content:center; title:attr(title); }
+    .sp-row-colors { display:flex; gap:5px; flex-shrink:0; }
+    .sp-row input[type=color] { width:30px; height:30px; border:1px solid var(--border); border-radius:6px; cursor:pointer; padding:2px; background:white; flex-shrink:0; }
+    .sp-done-btn { height:30px; padding:0 10px; border-radius:6px; border:2px solid var(--border); background:white; cursor:pointer; font-size:11px; font-weight:800; flex-shrink:0; font-family:inherit; color:var(--muted); transition:all .13s; white-space:nowrap; }
     .sp-done-btn.is-done { border-color:var(--green); background:#DCFCE7; color:var(--green); }
-    .sp-done-btn:not(.is-done) { color:transparent; }
-    .sp-done-btn:not(.is-done):hover { border-color:var(--green); color:#BBF7D0; }
-    .sp-row-del { background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1; flex-shrink:0; padding:0 2px; font-family:inherit; }
-    .sp-row-del:hover { color:var(--red); }
-    .sp-add-btn { width:100%; padding:8px; border:1px dashed #C7D7FE; border-radius:8px; background:#EEF2FF; color:var(--navy); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:background .13s; }
+    .sp-done-btn:not(.is-done):hover { border-color:var(--green); color:var(--green); }
+    .sp-row-del { background:none; border:1px solid var(--border); border-radius:6px; color:var(--muted); cursor:pointer; font-size:15px; line-height:1; flex-shrink:0; padding:5px 8px; font-family:inherit; }
+    .sp-row-del:hover { background:#FEE2E2; border-color:#FCA5A5; color:var(--red); }
+    .sp-add-btn { padding:8px 16px; border:1px dashed #C7D7FE; border-radius:8px; background:#EEF2FF; color:var(--navy); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:background .13s; }
     .sp-add-btn:hover { background:#E0E7FF; }
-    .sp-hint { font-size:10px; color:var(--muted); margin-top:10px; text-align:center; line-height:1.5; }
-    .sp-preview { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:800; margin-left:4px; vertical-align:middle; }
+    .sp-hint { font-size:11px; color:var(--muted); margin:12px 0 0; line-height:1.6; }
 
     @media (max-width:1100px) {
       .summary-grid,.project-results-grid,.tab-settings-grid { grid-template-columns:repeat(2,1fr); }
@@ -353,6 +346,16 @@
 
     <!-- ── PROJECT TAB ── -->
     <section id="projectTab" class="hidden">
+      <!-- Status button lives above sub-tabs, always visible in Project Dashboard -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn-status-mgr" id="statusPanelBtn" onclick="toggleStatusPanel()">
+          ⚙ Edit Statuses
+        </button>
+        <span style="font-size:12px;color:var(--muted);">Customize the task status dropdown options</span>
+      </div>
+      <!-- Inline status management panel — hidden by default -->
+      <div id="statusPanel" class="hidden"></div>
+
       <div class="sub-tabs">
         <button class="sub-tab active" id="projectInputSubBtn">Project Input</button>
         <button class="sub-tab" id="projectResultsSubBtn">Project Results</button>
@@ -1203,73 +1206,48 @@ function isDoneStatus(statusLabel) {
 }
 
 // ── Popover: open anchored to the edit button ──
-function openStatusPopover(anchorEl) {
-  closeStatusPopover(); // close any existing one first
-
-  // Overlay to catch outside clicks
-  const overlay = document.createElement('div');
-  overlay.className = 'status-popover-overlay';
-  overlay.id = 'statusPopoverOverlay';
-  overlay.addEventListener('click', closeStatusPopover);
-  document.body.appendChild(overlay);
-
-  // Popover panel
-  const pop = document.createElement('div');
-  pop.className = 'status-popover';
-  pop.id = 'statusPopover';
-  pop.addEventListener('click', e => e.stopPropagation());
-  document.body.appendChild(pop);
-
-  // Position below the anchor button
-  const rect = anchorEl.getBoundingClientRect();
-  const popW = 320;
-  let left = rect.left;
-  if (left + popW > window.innerWidth - 12) left = window.innerWidth - popW - 12;
-  pop.style.top  = (rect.bottom + 8 + window.scrollY) + 'px';
-  pop.style.left = Math.max(8, left) + 'px';
-
-  renderStatusPopover();
+// ── Toggle the inline status panel ──
+function toggleStatusPanel() {
+  const panel = document.getElementById('statusPanel');
+  const btn   = document.getElementById('statusPanelBtn');
+  if (!panel || !btn) return;
+  const isOpen = !panel.classList.contains('hidden');
+  panel.classList.toggle('hidden', isOpen);
+  btn.classList.toggle('active', !isOpen);
+  if (!isOpen) renderStatusPanel();
 }
 
-function closeStatusPopover() {
-  const ov  = document.getElementById('statusPopoverOverlay');
-  const pop = document.getElementById('statusPopover');
-  if (ov)  ov.remove();
-  if (pop) pop.remove();
-  // Remove active state from all edit buttons
-  document.querySelectorAll('.status-edit-btn').forEach(b => b.classList.remove('active'));
-}
-
-function renderStatusPopover() {
-  const pop = document.getElementById('statusPopover');
-  if (!pop) return;
-
-  pop.innerHTML = `
-    <div class="status-popover-header">
-      <h4>Edit Status Options</h4>
-      <button class="status-popover-close" onclick="closeStatusPopover()" title="Close">×</button>
-    </div>
-    <div class="sp-rows">
-      ${taskStatusOptions.map((opt, i) => `
-        <div class="sp-row">
-          <span class="sp-row-drag" title="Option ${i+1}">⠿</span>
-          <input type="text"
-            value="${escapeHtml(opt.label)}"
-            placeholder="Status name"
-            oninput="spUpdateLabel(${i}, this.value)" />
-          <div class="sp-row-colors">
-            <input type="color" value="${opt.bg}"    oninput="spUpdateBg(${i},this.value)"    title="Background colour" />
-            <input type="color" value="${opt.color}" oninput="spUpdateColor(${i},this.value)" title="Text colour" />
+function renderStatusPanel() {
+  const panel = document.getElementById('statusPanel');
+  if (!panel) return;
+  panel.innerHTML = `
+    <div class="status-panel">
+      <div class="status-panel-header">
+        <h4>Status Options <span>— changes apply instantly to all tasks</span></h4>
+      </div>
+      <div class="sp-rows">
+        ${taskStatusOptions.map((opt, i) => `
+          <div class="sp-row">
+            <input type="text"
+              value="${escapeHtml(opt.label)}"
+              placeholder="Status name"
+              oninput="spUpdateLabel(${i}, this.value)" />
+            <div class="sp-row-colors">
+              <input type="color" value="${opt.bg}"    oninput="spUpdateBg(${i},this.value)"    title="Background colour" />
+              <input type="color" value="${opt.color}" oninput="spUpdateColor(${i},this.value)" title="Text colour" />
+            </div>
+            <button class="sp-done-btn ${opt.done ? 'is-done' : ''}"
+              onclick="spSetDone(${i})"
+              title="${opt.done ? 'Counts as Done for progress' : 'Mark as Done status'}">
+              ${opt.done ? '✓ Done' : '✓ Done'}
+            </button>
+            <button class="sp-row-del" onclick="spDelete(${i})" title="Remove">×</button>
           </div>
-          <button class="sp-done-btn ${opt.done ? 'is-done' : ''}"
-            onclick="spSetDone(${i})"
-            title="${opt.done ? 'This counts as Done' : 'Mark as Done status'}">✓</button>
-          <button class="sp-row-del" onclick="spDelete(${i})" title="Remove status">×</button>
-        </div>
-      `).join('')}
+        `).join('')}
+      </div>
+      <button class="sp-add-btn" onclick="spAdd()">+ Add Status</button>
+      <p class="sp-hint">The <strong>✓ Done</strong> button marks which status counts toward the progress circle. Colour pickers set the badge colours.</p>
     </div>
-    <button class="sp-add-btn" onclick="spAdd()">+ Add Status</button>
-    <p class="sp-hint">✓ = counts as "Done" for progress · colours update badges instantly</p>
   `;
 }
 
@@ -1277,7 +1255,6 @@ function spUpdateLabel(index, value) {
   if (!taskStatusOptions[index]) return;
   const oldLabel = taskStatusOptions[index].label;
   taskStatusOptions[index].label = value;
-  // Migrate existing tasks
   projectData.forEach(s => s.tasks.forEach(t => { if (t.status === oldLabel) t.status = value; }));
   save();
   refreshTaskStatusDropdowns();
@@ -1300,14 +1277,14 @@ function spUpdateColor(index, value) {
 function spSetDone(index) {
   taskStatusOptions.forEach((o, i) => { o.done = (i === index); });
   save();
-  renderStatusPopover();        // re-render popover to update ✓ highlights
-  renderProjectResults();       // update progress circle
+  renderStatusPanel();
+  renderProjectResults();
 }
 
 function spAdd() {
   taskStatusOptions.push({ label: 'New Status', color: '#374151', bg: '#F3F4F6', done: false });
   save();
-  renderStatusPopover();
+  renderStatusPanel();
   refreshTaskStatusDropdowns();
 }
 
@@ -1316,25 +1293,23 @@ function spDelete(index) {
   taskStatusOptions.splice(index, 1);
   if (!taskStatusOptions.some(o => o.done)) taskStatusOptions[0].done = true;
   save();
-  renderStatusPopover();
+  renderStatusPanel();
   refreshTaskStatusDropdowns();
 }
 
-// Refresh only the <select> dropdowns — no full re-render
 function refreshTaskStatusDropdowns() {
   document.querySelectorAll('.task-status-select').forEach(select => {
-    const currentVal = select.value;
+    const cur = select.value;
     select.innerHTML = taskStatusOptions.map(opt =>
-      `<option value="${escapeHtml(opt.label)}" ${currentVal === opt.label ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`
+      `<option value="${escapeHtml(opt.label)}" ${cur === opt.label ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`
     ).join('');
-    if (!taskStatusOptions.find(o => o.label === currentVal) && taskStatusOptions.length) {
+    if (!taskStatusOptions.find(o => o.label === cur) && taskStatusOptions.length) {
       select.value = taskStatusOptions[0].label;
     }
   });
   refreshTaskStatusBadges();
 }
 
-// Refresh only status badges in the results panel
 function refreshTaskStatusBadges() {
   document.querySelectorAll('.ptask-status[data-status]').forEach(el => {
     el.style.cssText = getStatusStyle(el.dataset.status);
@@ -1364,7 +1339,6 @@ function renderProjectInput() {
                 `<option value="${escapeHtml(opt.label)}" ${task.status === opt.label ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`
               ).join('')}
             </select>
-            <button class="status-edit-btn" onclick="this.classList.toggle('active');openStatusPopover(this)" title="Edit status options">✎ Edit Statuses</button>
             <button class="btn-danger" onclick="deleteTask('${section.id}','${task.id}')">Delete</button>
           </div>
         </div>
@@ -1647,8 +1621,7 @@ window.toggleSummaryCard=toggleSummaryCard; window.moveMetric=moveMetric;
 window.addProjectSection=addProjectSection; window.deleteProjectSection=deleteProjectSection;
 window.updateProjectSection=updateProjectSection;
 window.addTask=addTask; window.deleteTask=deleteTask; window.updateTask=updateTask;
-window.openStatusPopover=openStatusPopover; window.closeStatusPopover=closeStatusPopover;
-window.renderStatusPopover=renderStatusPopover;
+window.toggleStatusPanel=toggleStatusPanel; window.renderStatusPanel=renderStatusPanel;
 window.spUpdateLabel=spUpdateLabel; window.spUpdateBg=spUpdateBg; window.spUpdateColor=spUpdateColor;
 window.spSetDone=spSetDone; window.spAdd=spAdd; window.spDelete=spDelete;
 window.loadAllDataFromFirebase=loadAllDataFromFirebase; window.render=render;
