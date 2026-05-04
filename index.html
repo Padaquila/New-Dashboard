@@ -711,7 +711,7 @@ function projectVisual(section) {
 //  EXISTING: TAB / NAVIGATION (unchanged)
 // ════════════════════════════════════════════════════════════
 function clearAchievedData() {
-  if (currentUserRole === 'viewer') return; {
+  if (currentUserRole === 'viewer') return;
   if (!confirm('Are you sure you want to clear achieved data?')) return;
   const d=getData();
   d.forEach(s => s.metrics.forEach(m => {
@@ -724,7 +724,7 @@ function clearAchievedData() {
 function switchMonth(idx) { if (currentUserRole === 'viewer') return; activeMonthIndex=idx; save(); render(); }
 
 function showTab(tab) {
-  if (currentUserRole === 'viewer') return; // viewers cannot navigate away from Results
+  if (currentUserRole === 'viewer' && tab !== 'results') return; // viewers locked to Results only
   activeMainTab = tab;
   activeCustomTabId = null;
   ['input','results','project'].forEach(t => {
@@ -775,7 +775,7 @@ function showCustomTab(tabId) {
 }
 
 function showProjectSubTab(tab) {
-  if (currentUserRole === 'viewer') return;
+  if (currentUserRole === 'viewer' && tab === 'input') return; // viewers cannot open Project Input
   activeProjectSubTab = tab;
   document.getElementById('projectInputPanel').classList.toggle('hidden', tab!=='input');
   document.getElementById('projectResultsPanel').classList.toggle('hidden', tab!=='results');
@@ -813,23 +813,23 @@ function renderMonthTabs() {
 //  EXISTING: INPUT CRUD (unchanged)
 // ════════════════════════════════════════════════════════════
 function addSection() {
-  if (currentUserRole === 'viewer') return; {
+  if (currentUserRole === 'viewer') return;
   const d=getData(); d.push({id:uid(),name:'New Section',metrics:[]}); setData(d); save(); render();
 }
 function deleteSection(sectionId) {
-  if (currentUserRole === 'viewer') return; {
+  if (currentUserRole === 'viewer') return;
   if (!confirm('Delete this section?')) return;
   setData(getData().filter(s=>s.id!==sectionId)); save(); render();
 }
 function addMetric(sectionId) {
-  if (currentUserRole === 'viewer') return; {
+  if (currentUserRole === 'viewer') return;
   const d=getData(), section=d.find(s=>s.id===sectionId); if (!section) return;
   const nm=createMetric(); section.metrics.push(nm); setData(d);
   MONTHS.forEach((_,mi)=>{ if(mi===activeMonthIndex) return; const od=getOrInitMonthData(mi); const os=od.find(s=>s.id===sectionId); if(!os) return; os.metrics.push({...nm,dailyA:'',dailyB:'',weeklyA:'',weeklyB:'',monthlyA:'',monthlyB:''}); monthDataCache[mi]=od; });
   save(); render();
 }
 function deleteMetric(sectionId, metricId) {
-  if (currentUserRole === 'viewer') return; {
+  if (currentUserRole === 'viewer') return;
   const d=getData(), section=d.find(s=>s.id===sectionId); if (!section) return;
   section.metrics=section.metrics.filter(m=>m.id!==metricId); setData(d);
   MONTHS.forEach((_,mi)=>{ if(mi===activeMonthIndex) return; const od=getOrInitMonthData(mi); const os=od.find(s=>s.id===sectionId); if(!os) return; os.metrics=os.metrics.filter(m=>m.id!==metricId); monthDataCache[mi]=od; });
@@ -875,11 +875,11 @@ function importTargetsFromPreviousMonth() {
 // ════════════════════════════════════════════════════════════
 //  EXISTING: PROJECT CRUD (unchanged)
 // ════════════════════════════════════════════════════════════
-function addProjectSection() { if (currentUserRole === 'viewer') return; { projectData.push({id:uid(),name:'New Project Section',tasks:[]}); save(); renderProject(); }
-function deleteProjectSection(sectionId) { if (currentUserRole === 'viewer') return; { if(!confirm('Delete this project section?')) return; projectData=projectData.filter(s=>s.id!==sectionId); save(); renderProject(); }
+function addProjectSection() { if (currentUserRole === 'viewer') return; projectData.push({id:uid(),name:'New Project Section',tasks:[]}); save(); renderProject(); }
+function deleteProjectSection(sectionId) { if (currentUserRole === 'viewer') return; if(!confirm('Delete this project section?')) return; projectData=projectData.filter(s=>s.id!==sectionId); save(); renderProject(); }
 function updateProjectSection(sectionId, value) { const s=projectData.find(s=>s.id===sectionId); if(s) s.name=value; save(); renderProjectResults(); }
-function addTask(sectionId) { if (currentUserRole === 'viewer') return; { const s=projectData.find(s=>s.id===sectionId); if(!s) return; s.tasks.push(createTask()); save(); renderProject(); }
-function deleteTask(sectionId, taskId) { if (currentUserRole === 'viewer') return; { const s=projectData.find(s=>s.id===sectionId); if(!s) return; s.tasks=s.tasks.filter(t=>t.id!==taskId); save(); renderProject(); }
+function addTask(sectionId) { if (currentUserRole === 'viewer') return; const s=projectData.find(s=>s.id===sectionId); if(!s) return; s.tasks.push(createTask()); save(); renderProject(); }
+function deleteTask(sectionId, taskId) { if (currentUserRole === 'viewer') return; const s=projectData.find(s=>s.id===sectionId); if(!s) return; s.tasks=s.tasks.filter(t=>t.id!==taskId); save(); renderProject(); }
 function updateTask(sectionId, taskId, field, value) { const s=projectData.find(s=>s.id===sectionId); if(!s) return; const t=s.tasks.find(t=>t.id===taskId); if(t) t[field]=value; save(); renderProjectResults(); }
 
 // ════════════════════════════════════════════════════════════
