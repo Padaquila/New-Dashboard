@@ -451,6 +451,15 @@ async function loadAllDataFromFirebase() {
   const ctabSnap = await getDoc(doc(db, 'shared', 'customTabs'));
   if (ctabSnap.exists()) customTabs = ctabSnap.data().tabs || [];
   else customTabs = [];
+
+  // Load this user's role from users/{uid}
+  const uid = window._firebase.auth.currentUser.uid;
+  try {
+    const roleSnap = await getDoc(doc(db, 'users', uid));
+    currentUserRole = (roleSnap.exists() && roleSnap.data().role === 'viewer') ? 'viewer' : 'admin';
+  } catch(e) {
+    currentUserRole = 'viewer'; // if role doc missing or unreadable, default to least privilege
+  }
 }
 
 let _saveTimeout = null;
@@ -463,6 +472,7 @@ function scheduleSave() {
 }
 
 async function commitToFirebase() {
+  if (currentUserRole === 'viewer') return; // viewers never write
   const { db, doc, setDoc } = window._firebase;
   try {
     const monthsObj = {};
@@ -528,6 +538,7 @@ let activeMainTab    = 'input';
 let activeProjectSubTab = 'input';
 let customTabs       = [];   // NEW: array of custom tab objects
 let activeCustomTabId = null; // NEW
+let currentUserRole  = 'admin'; // 'admin' or 'viewer' — loaded after login
 let taskStatusOptions = [     // Project task status options — user-configurable
   { label: 'Pending',     color: '#854D0E', bg: '#FEF9C3', done: false },
   { label: 'In Progress', color: '#1E40AF', bg: '#DBEAFE', done: false },
@@ -700,6 +711,7 @@ function projectVisual(section) {
 //  EXISTING: TAB / NAVIGATION (unchanged)
 // ════════════════════════════════════════════════════════════
 function clearAchievedData() {
+  if (currentUserRole === 'viewer') return; {
   if (!confirm('Are you sure you want to clear achieved data?')) return;
   const d=getData();
   d.forEach(s => s.metrics.forEach(m => {
@@ -709,9 +721,10 @@ function clearAchievedData() {
   setData(d); save(); render();
 }
 
-function switchMonth(idx) { activeMonthIndex=idx; save(); render(); }
+function switchMonth(idx) { if (currentUserRole === 'viewer') return; activeMonthIndex=idx; save(); render(); }
 
 function showTab(tab) {
+  if (currentUserRole === 'viewer') return; // viewers cannot navigate away from Results
   activeMainTab = tab;
   activeCustomTabId = null;
   ['input','results','project'].forEach(t => {
@@ -725,6 +738,7 @@ function showTab(tab) {
 }
 
 function showCustomTab(tabId) {
+  if (currentUserRole === 'viewer') return;
   activeMainTab = 'custom';
   activeCustomTabId = tabId;
 
@@ -761,6 +775,7 @@ function showCustomTab(tabId) {
 }
 
 function showProjectSubTab(tab) {
+  if (currentUserRole === 'viewer') return;
   activeProjectSubTab = tab;
   document.getElementById('projectInputPanel').classList.toggle('hidden', tab!=='input');
   document.getElementById('projectResultsPanel').classList.toggle('hidden', tab!=='results');
@@ -798,19 +813,23 @@ function renderMonthTabs() {
 //  EXISTING: INPUT CRUD (unchanged)
 // ════════════════════════════════════════════════════════════
 function addSection() {
+  if (currentUserRole === 'viewer') return; {
   const d=getData(); d.push({id:uid(),name:'New Section',metrics:[]}); setData(d); save(); render();
 }
 function deleteSection(sectionId) {
+  if (currentUserRole === 'viewer') return; {
   if (!confirm('Delete this section?')) return;
   setData(getData().filter(s=>s.id!==sectionId)); save(); render();
 }
 function addMetric(sectionId) {
+  if (currentUserRole === 'viewer') return; {
   const d=getData(), section=d.find(s=>s.id===sectionId); if (!section) return;
   const nm=createMetric(); section.metrics.push(nm); setData(d);
   MONTHS.forEach((_,mi)=>{ if(mi===activeMonthIndex) return; const od=getOrInitMonthData(mi); const os=od.find(s=>s.id===sectionId); if(!os) return; os.metrics.push({...nm,dailyA:'',dailyB:'',weeklyA:'',weeklyB:'',monthlyA:'',monthlyB:''}); monthDataCache[mi]=od; });
   save(); render();
 }
 function deleteMetric(sectionId, metricId) {
+  if (currentUserRole === 'viewer') return; {
   const d=getData(), section=d.find(s=>s.id===sectionId); if (!section) return;
   section.metrics=section.metrics.filter(m=>m.id!==metricId); setData(d);
   MONTHS.forEach((_,mi)=>{ if(mi===activeMonthIndex) return; const od=getOrInitMonthData(mi); const os=od.find(s=>s.id===sectionId); if(!os) return; os.metrics=os.metrics.filter(m=>m.id!==metricId); monthDataCache[mi]=od; });
@@ -856,11 +875,11 @@ function importTargetsFromPreviousMonth() {
 // ════════════════════════════════════════════════════════════
 //  EXISTING: PROJECT CRUD (unchanged)
 // ════════════════════════════════════════════════════════════
-function addProjectSection() { projectData.push({id:uid(),name:'New Project Section',tasks:[]}); save(); renderProject(); }
-function deleteProjectSection(sectionId) { if(!confirm('Delete this project section?')) return; projectData=projectData.filter(s=>s.id!==sectionId); save(); renderProject(); }
+function addProjectSection() { if (currentUserRole === 'viewer') return; { projectData.push({id:uid(),name:'New Project Section',tasks:[]}); save(); renderProject(); }
+function deleteProjectSection(sectionId) { if (currentUserRole === 'viewer') return; { if(!confirm('Delete this project section?')) return; projectData=projectData.filter(s=>s.id!==sectionId); save(); renderProject(); }
 function updateProjectSection(sectionId, value) { const s=projectData.find(s=>s.id===sectionId); if(s) s.name=value; save(); renderProjectResults(); }
-function addTask(sectionId) { const s=projectData.find(s=>s.id===sectionId); if(!s) return; s.tasks.push(createTask()); save(); renderProject(); }
-function deleteTask(sectionId, taskId) { const s=projectData.find(s=>s.id===sectionId); if(!s) return; s.tasks=s.tasks.filter(t=>t.id!==taskId); save(); renderProject(); }
+function addTask(sectionId) { if (currentUserRole === 'viewer') return; { const s=projectData.find(s=>s.id===sectionId); if(!s) return; s.tasks.push(createTask()); save(); renderProject(); }
+function deleteTask(sectionId, taskId) { if (currentUserRole === 'viewer') return; { const s=projectData.find(s=>s.id===sectionId); if(!s) return; s.tasks=s.tasks.filter(t=>t.id!==taskId); save(); renderProject(); }
 function updateTask(sectionId, taskId, field, value) { const s=projectData.find(s=>s.id===sectionId); if(!s) return; const t=s.tasks.find(t=>t.id===taskId); if(t) t[field]=value; save(); renderProjectResults(); }
 
 // ════════════════════════════════════════════════════════════
@@ -1591,6 +1610,49 @@ function render() {
       p.classList.toggle('hidden', p.id !== 'ctab-panel-' + activeCustomTabId);
     });
   }
+  // Apply viewer restrictions after all rendering is done
+  if (currentUserRole === 'viewer') applyViewerMode();
+}
+
+function applyViewerMode() {
+  const hide = (id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; };
+
+  // ── 1. Force the active state to results unconditionally ──
+  activeMainTab = 'results';
+  activeCustomTabId = null;
+
+  // ── 2. Hide every tab section except Results ──
+  document.getElementById('inputTab').classList.add('hidden');
+  document.getElementById('projectTab').classList.add('hidden');
+  document.getElementById('customTabPanels').classList.add('hidden');
+  document.getElementById('resultsTab').classList.remove('hidden');
+
+  // ── 3. Hide all nav tab buttons except Results ──
+  hide('inputTabBtn');
+  hide('projectTabBtn');
+  hide('addCustomTabBtn');
+  document.querySelectorAll('.custom-tab-btn').forEach(el => el.style.display = 'none');
+
+  // Make Results tab button appear active
+  document.getElementById('resultsTabBtn').classList.add('active');
+  document.getElementById('inputTabBtn').classList.remove('active');
+  document.getElementById('projectTabBtn').classList.remove('active');
+
+  // ── 4. Hide all header controls viewers must not touch ──
+  hide('clearAchievedBtn');
+  hide('monthTabsBar');
+  hide('activeMonthPill');
+  hide('statusPanelBtn');
+
+  // ── 5. Show viewer badge (only insert once) ──
+  if (!document.getElementById('viewerBadge')) {
+    const badge = document.createElement('span');
+    badge.id = 'viewerBadge';
+    badge.textContent = 'View only';
+    badge.style.cssText = 'font-size:11px;font-weight:700;background:#FEF9C3;color:#854D0E;padding:3px 10px;border-radius:999px;margin-left:6px;vertical-align:middle;';
+    const emailEl = document.getElementById('userEmailLabel');
+    if (emailEl && emailEl.parentNode) emailEl.parentNode.insertBefore(badge, emailEl.nextSibling);
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1625,6 +1687,7 @@ window.toggleStatusPanel=toggleStatusPanel; window.renderStatusPanel=renderStatu
 window.spUpdateLabel=spUpdateLabel; window.spUpdateBg=spUpdateBg; window.spUpdateColor=spUpdateColor;
 window.spSetDone=spSetDone; window.spAdd=spAdd; window.spDelete=spDelete;
 window.loadAllDataFromFirebase=loadAllDataFromFirebase; window.render=render;
+window.applyViewerMode=applyViewerMode;
 // NEW globals
 window.showCustomTab=showCustomTab; window.deleteCustomTab=deleteCustomTab;
 window.updateCustomTabName=updateCustomTabName; window.updateCustomTabSectionName=updateCustomTabSectionName;
