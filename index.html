@@ -724,7 +724,7 @@ function clearAchievedData() {
 function switchMonth(idx) { if (currentUserRole === 'viewer') return; activeMonthIndex=idx; save(); render(); }
 
 function showTab(tab) {
-  if (currentUserRole === 'viewer' && tab !== 'results') return; // viewers locked to Results only
+  if (currentUserRole === 'viewer' && tab === 'input') return; // viewers cannot open the Input tab
   activeMainTab = tab;
   activeCustomTabId = null;
   ['input','results','project'].forEach(t => {
@@ -738,7 +738,6 @@ function showTab(tab) {
 }
 
 function showCustomTab(tabId) {
-  if (currentUserRole === 'viewer') return;
   activeMainTab = 'custom';
   activeCustomTabId = tabId;
 
@@ -1434,8 +1433,8 @@ function renderCustomTabPanel(tabId) {
 
   panel.innerHTML = `
     <div class="ctab-container">
-      <!-- Tab name + delete -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
+      <!-- Tab name + delete (hidden for viewers) -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px;${currentUserRole==='viewer'?'display:none!important;':''}">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <input class="section-name" style="font-size:22px;width:auto;" value="${escapeHtml(tab.name)}"
             oninput="updateCustomTabName('${tabId}',this.value)" placeholder="Tab name" />
@@ -1443,18 +1442,20 @@ function renderCustomTabPanel(tabId) {
         <button class="btn-danger" onclick="deleteCustomTab('${tabId}')">Delete Tab</button>
       </div>
 
-      <!-- Sub-tabs: Input / Results -->
+      <!-- Sub-tabs: Input / Results — input button hidden for viewers -->
       <div class="ctab-sub-tabs">
-        <button class="ctab-sub-tab active" id="ctab-input-btn-${tabId}" onclick="switchCtabSubTab('${tabId}','input')">
+        <button class="ctab-sub-tab ${currentUserRole!=='viewer'?'active':''}" id="ctab-input-btn-${tabId}"
+          onclick="switchCtabSubTab('${tabId}','input')"
+          style="${currentUserRole==='viewer'?'display:none;':''}">
           ${escapeHtml(tab.inputSectionName)}
         </button>
-        <button class="ctab-sub-tab" id="ctab-results-btn-${tabId}" onclick="switchCtabSubTab('${tabId}','results')">
+        <button class="ctab-sub-tab ${currentUserRole==='viewer'?'active':''}" id="ctab-results-btn-${tabId}" onclick="switchCtabSubTab('${tabId}','results')">
           ${escapeHtml(tab.resultsSectionName)}
         </button>
       </div>
 
-      <!-- INPUT panel -->
-      <div id="ctab-input-${tabId}">
+      <!-- INPUT panel — hidden for viewers -->
+      <div id="ctab-input-${tabId}" ${currentUserRole==='viewer'?'class="hidden"':''}>
         <!-- Section name -->
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
           <input class="section-name" value="${escapeHtml(tab.inputSectionName)}"
@@ -1486,9 +1487,9 @@ function renderCustomTabPanel(tabId) {
         <button class="btn-blue" style="margin-top:8px;" onclick="addEntry('${tabId}')">+ Add Entry</button>
       </div>
 
-      <!-- RESULTS panel -->
-      <div id="ctab-results-${tabId}" class="hidden">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+      <!-- RESULTS panel — visible by default for viewers -->
+      <div id="ctab-results-${tabId}" class="${currentUserRole==='viewer'?'':'hidden'}">
+        <div style="display:${currentUserRole==='viewer'?'none':'flex'};align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
           <input class="section-name" value="${escapeHtml(tab.resultsSectionName)}"
             oninput="updateCustomTabSectionName('${tabId}','resultsSectionName',this.value);refreshCtabSubTabLabels('${tabId}')"
             placeholder="Section name" style="max-width:320px;" />
@@ -1562,6 +1563,7 @@ function renderResultsTable(tab) {
 }
 
 function switchCtabSubTab(tabId, sub) {
+  if (currentUserRole === 'viewer' && sub === 'input') return; // viewers cannot open input sub-tab
   const inputPanel   = document.getElementById('ctab-input-'+tabId);
   const resultsPanel = document.getElementById('ctab-results-'+tabId);
   const inputBtn     = document.getElementById('ctab-input-btn-'+tabId);
@@ -1616,35 +1618,66 @@ function render() {
 
 function applyViewerMode() {
   const hide = (id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; };
+  const show = (id) => { const el = document.getElementById(id); if (el) el.style.display = ''; };
 
-  // ── 1. Force the active state to results unconditionally ──
-  activeMainTab = 'results';
-  activeCustomTabId = null;
-
-  // ── 2. Hide every tab section except Results ──
-  document.getElementById('inputTab').classList.add('hidden');
-  document.getElementById('projectTab').classList.add('hidden');
-  document.getElementById('customTabPanels').classList.add('hidden');
-  document.getElementById('resultsTab').classList.remove('hidden');
-
-  // ── 3. Hide all nav tab buttons except Results ──
+  // ── 1. Hide the main Input tab button and its content (purely input, no results) ──
   hide('inputTabBtn');
-  hide('projectTabBtn');
-  hide('addCustomTabBtn');
-  document.querySelectorAll('.custom-tab-btn').forEach(el => el.style.display = 'none');
+  hide('addCustomTabBtn');   // no creating new tabs
+  hide('clearAchievedBtn');  // no clearing data
+  hide('monthTabsBar');      // no month switching
+  hide('activeMonthPill');   // hide month pill
+  hide('statusPanelBtn');    // no editing statuses
 
-  // Make Results tab button appear active
-  document.getElementById('resultsTabBtn').classList.add('active');
-  document.getElementById('inputTabBtn').classList.remove('active');
-  document.getElementById('projectTabBtn').classList.remove('active');
+  // ── 2. Show Project Dashboard tab button — viewer CAN see project results ──
+  show('projectTabBtn');
+  // Show all custom tab buttons — viewer CAN see their results sections
+  document.querySelectorAll('.custom-tab-btn').forEach(el => el.style.display = '');
 
-  // ── 4. Hide all header controls viewers must not touch ──
-  hide('clearAchievedBtn');
-  hide('monthTabsBar');
-  hide('activeMonthPill');
-  hide('statusPanelBtn');
+  // ── 3. If the current tab is 'input', redirect viewer to 'results' ──
+  if (activeMainTab === 'input') {
+    activeMainTab = 'results';
+    document.getElementById('inputTab').classList.add('hidden');
+    document.getElementById('resultsTab').classList.remove('hidden');
+    document.getElementById('resultsTabBtn').classList.add('active');
+    document.getElementById('inputTabBtn').classList.remove('active');
+  }
 
-  // ── 5. Show viewer badge (only insert once) ──
+  // ── 4. Inside Project tab: hide Project Input sub-tab, show only Project Results ──
+  hide('projectInputSubBtn');
+  // If viewer is on project tab, force to results sub-tab
+  if (activeProjectSubTab === 'input') {
+    activeProjectSubTab = 'results';
+    const pip = document.getElementById('projectInputPanel');
+    const prp = document.getElementById('projectResultsPanel');
+    if (pip) pip.style.display = 'none';
+    if (prp) { prp.classList.remove('hidden'); prp.style.display = ''; }
+    const risb = document.getElementById('projectResultsSubBtn');
+    if (risb) risb.classList.add('active');
+  }
+  // Always hide project input panel regardless of sub-tab state
+  const pip = document.getElementById('projectInputPanel');
+  if (pip) pip.style.display = 'none';
+
+  // ── 5. Inside each custom tab: hide its input section, show results directly ──
+  customTabs.forEach(tab => {
+    const inputPanel   = document.getElementById('ctab-input-'   + tab.id);
+    const resultsPanel = document.getElementById('ctab-results-' + tab.id);
+    const inputBtn     = document.getElementById('ctab-input-btn-'   + tab.id);
+    const resultsBtn   = document.getElementById('ctab-results-btn-' + tab.id);
+    const nameInput    = document.querySelector(`#ctab-panel-${tab.id} input.section-name`);
+    const deleteBtn    = document.querySelector(`#ctab-panel-${tab.id} .btn-danger`);
+    if (inputBtn)     inputBtn.style.display    = 'none';    // hide Input sub-tab button
+    if (inputPanel)   inputPanel.classList.add('hidden');    // hide input content
+    if (resultsPanel) { resultsPanel.classList.remove('hidden'); } // show results content
+    if (resultsBtn)   resultsBtn.classList.add('active');    // mark Results as active
+    if (nameInput)    nameInput.style.display   = 'none';   // hide tab name editor
+    if (deleteBtn)    deleteBtn.style.display   = 'none';   // hide Delete Tab button
+    // Refresh results table content
+    const resultsContent = document.getElementById('ctab-results-content-' + tab.id);
+    if (resultsContent) resultsContent.innerHTML = renderResultsTable(tab);
+  });
+
+  // ── 6. Show viewer badge (only insert once) ──
   if (!document.getElementById('viewerBadge')) {
     const badge = document.createElement('span');
     badge.id = 'viewerBadge';
