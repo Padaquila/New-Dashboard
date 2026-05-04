@@ -686,13 +686,30 @@ function showTab(tab) {
 function showCustomTab(tabId) {
   activeMainTab = 'custom';
   activeCustomTabId = tabId;
+  // Hide built-in tab sections
   ['input','results','project'].forEach(t => {
     document.getElementById(t+'Tab').classList.add('hidden');
     document.getElementById(t+'TabBtn').classList.remove('active');
   });
   document.getElementById('customTabPanels').classList.remove('hidden');
+  // Make sure the panel div exists before rendering into it
+  renderCustomTabPanels();
+  // Hide all custom tab panels, then show only the target
+  customTabs.forEach(t => {
+    const p = document.getElementById('ctab-panel-' + t.id);
+    if (p) p.classList.add('hidden');
+  });
+  // Update active button highlight
   document.querySelectorAll('.custom-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tabid===tabId));
-  renderCustomTabPanel(tabId);
+  // Only render the panel content if it's empty (first visit) — never overwrite existing content
+  const panel = document.getElementById('ctab-panel-' + tabId);
+  if (panel) {
+    panel.classList.remove('hidden');
+    if (!panel.hasAttribute('data-rendered')) {
+      renderCustomTabPanel(tabId);
+      panel.setAttribute('data-rendered', '1');
+    }
+  }
 }
 
 function showProjectSubTab(tab) {
@@ -818,19 +835,29 @@ function deleteCustomTab(tabId) {
   }
   save();
   renderCustomTabButtons();
-  renderCustomTabPanels();
+  renderCustomTabPanels(); // will remove the panel div for the deleted tab
 }
 
 function getCustomTab(tabId) { return customTabs.find(t => t.id === tabId); }
 
 function updateCustomTabName(tabId, value) {
   const tab = getCustomTab(tabId);
-  if (tab) { tab.name = value || 'New Tab'; save(); renderCustomTabButtons(); }
+  if (!tab) return;
+  tab.name = value || 'New Tab';
+  save();
+  // Only update the button text — do NOT re-render the panel (would reset the input cursor)
+  document.querySelectorAll('.custom-tab-btn').forEach(b => {
+    if (b.dataset.tabid === tabId) b.textContent = tab.name;
+  });
 }
 
 function updateCustomTabSectionName(tabId, key, value) {
   const tab = getCustomTab(tabId);
-  if (tab) { tab[key] = value || (key === 'inputSectionName' ? 'Input Section' : 'Results Section'); save(); }
+  if (!tab) return;
+  tab[key] = value || (key === 'inputSectionName' ? 'Input Section' : 'Results Section');
+  save();
+  // Refresh only the sub-tab button labels (no full re-render)
+  refreshCtabSubTabLabels(tabId);
 }
 
 // ── Field schema management ──
@@ -983,6 +1010,9 @@ function fmSave() {
 
   save();
   closeFieldModal();
+  // Force full panel re-render after field structure change
+  const _panel = document.getElementById('ctab-panel-'+_modalTabId);
+  if (_panel) _panel.removeAttribute('data-rendered');
   renderCustomTabPanel(_modalTabId);
 }
 
@@ -994,6 +1024,8 @@ function fmDeleteField() {
   tab.entries.forEach(e => { delete e[_modalFieldId]; });
   save();
   closeFieldModal();
+  const _panel2 = document.getElementById('ctab-panel-'+_modalTabId);
+  if (_panel2) _panel2.removeAttribute('data-rendered');
   renderCustomTabPanel(_modalTabId);
 }
 
@@ -1016,7 +1048,10 @@ function addEntry(tabId) {
   if (!tab) return;
   tab.entries.push(createEntry(tab.fields));
   save();
-  renderCustomTabPanel(tabId);
+  // Only re-render the entries list, not the whole panel
+  const entriesDiv = document.getElementById('ctab-entries-'+tabId);
+  if (entriesDiv) entriesDiv.innerHTML = renderEntries(tab);
+  else renderCustomTabPanel(tabId);
 }
 
 function deleteEntry(tabId, entryId) {
@@ -1024,7 +1059,9 @@ function deleteEntry(tabId, entryId) {
   if (!tab) return;
   tab.entries = tab.entries.filter(e => e.id !== entryId);
   save();
-  renderCustomTabPanel(tabId);
+  const entriesDiv = document.getElementById('ctab-entries-'+tabId);
+  if (entriesDiv) entriesDiv.innerHTML = renderEntries(tab);
+  else renderCustomTabPanel(tabId);
 }
 
 function updateEntry(tabId, entryId, fieldId, value) {
@@ -1032,9 +1069,12 @@ function updateEntry(tabId, entryId, fieldId, value) {
   if (!tab) return;
   const entry = tab.entries.find(e => e.id === entryId);
   if (entry) { entry[fieldId] = value; save(); }
-  // Also refresh the results sub-panel if visible
-  const resultsPanel = document.getElementById('ctab-results-'+tabId);
-  if (resultsPanel && !resultsPanel.classList.contains('hidden')) renderCustomTabResults(tabId);
+  // Silently refresh results content div if results sub-tab is visible (no full re-render)
+  const resultsContent = document.getElementById('ctab-results-content-'+tabId);
+  const resultsPanel   = document.getElementById('ctab-results-'+tabId);
+  if (resultsContent && resultsPanel && !resultsPanel.classList.contains('hidden')) {
+    resultsContent.innerHTML = renderResultsTable(tab);
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1173,8 +1213,20 @@ function renderCustomTabButtons() {
 
 function renderCustomTabPanels() {
   const container = document.getElementById('customTabPanels');
-  if (!customTabs.length) { container.innerHTML=''; return; }
-  container.innerHTML = customTabs.map(tab => `<div id="ctab-panel-${tab.id}" class="hidden"></div>`).join('');
+  // Remove panels for deleted tabs
+  Array.from(container.children).forEach(el => {
+    const tabId = el.id.replace('ctab-panel-', '');
+    if (!customTabs.find(t => t.id === tabId)) el.remove();
+  });
+  // Add panels for new tabs (but never touch existing ones)
+  customTabs.forEach(tab => {
+    if (!document.getElementById('ctab-panel-' + tab.id)) {
+      const div = document.createElement('div');
+      div.id = 'ctab-panel-' + tab.id;
+      div.className = 'hidden';
+      container.appendChild(div);
+    }
+  });
 }
 
 function renderCustomTabPanel(tabId) {
@@ -1183,6 +1235,7 @@ function renderCustomTabPanel(tabId) {
   const panel = document.getElementById('ctab-panel-'+tabId);
   if (!panel) return;
   panel.classList.remove('hidden');
+  panel.setAttribute('data-rendered', '1');
 
   panel.innerHTML = `
     <div class="ctab-container">
@@ -1349,11 +1402,16 @@ function render() {
   renderProject();
   showProjectSubTab(activeProjectSubTab);
   renderCustomTabButtons();
-  renderCustomTabPanels();
+  renderCustomTabPanels(); // safe — only adds/removes panels, never touches existing content
   if (activeCustomTabId) {
     document.getElementById('customTabPanels').classList.remove('hidden');
-    renderCustomTabPanel(activeCustomTabId);
-    // deactivate built-in tabs
+    // Do NOT call renderCustomTabPanel here — it would destroy live form state.
+    // The panel was already rendered when the tab was first opened.
+    // Just ensure the right visibility is set:
+    customTabs.forEach(t => {
+      const p = document.getElementById('ctab-panel-' + t.id);
+      if (p) p.classList.toggle('hidden', t.id !== activeCustomTabId);
+    });
     ['input','results','project'].forEach(t => {
       document.getElementById(t+'Tab').classList.add('hidden');
       document.getElementById(t+'TabBtn').classList.remove('active');
