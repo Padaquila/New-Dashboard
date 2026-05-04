@@ -233,23 +233,35 @@
     .result-link:hover { text-decoration:underline; }
 
     /* ── PROJECT STATUS MANAGER ── */
-    .status-manager { background:#EEF2FF; border:1px solid #C7D7FE; border-radius:10px; padding:16px 18px; margin-bottom:20px; }
-    .status-manager-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
-    .status-manager-header h4 { margin:0; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.7px; color:var(--navy); }
-    .status-manager-header button { font-size:12px; padding:5px 12px; }
-    .status-rows { display:flex; flex-direction:column; gap:7px; margin-bottom:12px; }
-    .status-row { display:flex; align-items:center; gap:8px; }
-    .status-row input[type=text] { flex:1; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:inherit; outline:none; background:white; }
-    .status-row input[type=text]:focus { border-color:var(--navy); }
-    .status-row input[type=color] { width:34px; height:34px; border:1px solid var(--border); border-radius:6px; cursor:pointer; padding:2px; background:white; flex-shrink:0; }
-    .status-row-done { display:flex; align-items:center; gap:5px; font-size:11px; font-weight:700; color:var(--muted); white-space:nowrap; flex-shrink:0; cursor:pointer; }
-    .status-row-done input[type=radio] { accent-color:var(--green); cursor:pointer; }
-    .status-row-del { background:none; border:1px solid var(--border); border-radius:6px; color:var(--muted); cursor:pointer; padding:6px 9px; font-size:14px; line-height:1; flex-shrink:0; font-family:inherit; }
-    .status-row-del:hover { background:#FEE2E2; border-color:#FCA5A5; color:var(--red); }
-    .status-manager-footer { display:flex; gap:8px; align-items:center; }
-    .btn-gear { background:transparent; border:1px solid var(--border); border-radius:7px; padding:7px 10px; font-size:15px; cursor:pointer; color:var(--muted); line-height:1; }
-    .btn-gear:hover { background:#EEF2FF; color:var(--navy); border-color:#C7D7FE; }
-    .btn-gear.active { background:#EEF2FF; color:var(--navy); border-color:#C7D7FE; }
+    /* Inline edit button next to every status select */
+    .status-edit-btn { background:transparent; border:1px solid var(--border); border-radius:6px; padding:6px 9px; font-size:13px; cursor:pointer; color:var(--muted); line-height:1; flex-shrink:0; font-family:inherit; transition:background .13s,color .13s,border-color .13s; }
+    .status-edit-btn:hover { background:#EEF2FF; color:var(--navy); border-color:#C7D7FE; }
+    .status-edit-btn.active { background:#EEF2FF; color:var(--navy); border-color:#C7D7FE; }
+
+    /* Floating status manager popover */
+    .status-popover-overlay { position:fixed; inset:0; z-index:9998; }
+    .status-popover { position:fixed; z-index:9999; background:white; border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 40px rgba(0,0,0,.18); padding:20px; width:320px; max-height:80vh; overflow-y:auto; }
+    .status-popover-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+    .status-popover-header h4 { margin:0; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.7px; color:var(--navy); }
+    .status-popover-close { background:none; border:none; font-size:20px; line-height:1; cursor:pointer; color:var(--muted); padding:0 2px; font-family:inherit; }
+    .status-popover-close:hover { color:var(--red); }
+    .sp-rows { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+    .sp-row { display:flex; align-items:center; gap:7px; background:#F7F9FC; border:1px solid var(--border); border-radius:8px; padding:7px 8px; }
+    .sp-row-drag { color:var(--grey); font-size:14px; cursor:grab; user-select:none; flex-shrink:0; }
+    .sp-row input[type=text] { flex:1; padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:inherit; outline:none; background:white; min-width:0; }
+    .sp-row input[type=text]:focus { border-color:var(--navy); }
+    .sp-row-colors { display:flex; gap:4px; flex-shrink:0; }
+    .sp-row input[type=color] { width:28px; height:28px; border:1px solid var(--border); border-radius:5px; cursor:pointer; padding:1px; background:white; flex-shrink:0; }
+    .sp-done-btn { width:26px; height:26px; border-radius:50%; border:2px solid var(--border); background:white; cursor:pointer; font-size:12px; line-height:1; flex-shrink:0; display:flex; align-items:center; justify-content:center; title:attr(title); }
+    .sp-done-btn.is-done { border-color:var(--green); background:#DCFCE7; color:var(--green); }
+    .sp-done-btn:not(.is-done) { color:transparent; }
+    .sp-done-btn:not(.is-done):hover { border-color:var(--green); color:#BBF7D0; }
+    .sp-row-del { background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1; flex-shrink:0; padding:0 2px; font-family:inherit; }
+    .sp-row-del:hover { color:var(--red); }
+    .sp-add-btn { width:100%; padding:8px; border:1px dashed #C7D7FE; border-radius:8px; background:#EEF2FF; color:var(--navy); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:background .13s; }
+    .sp-add-btn:hover { background:#E0E7FF; }
+    .sp-hint { font-size:10px; color:var(--muted); margin-top:10px; text-align:center; line-height:1.5; }
+    .sp-preview { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:800; margin-left:4px; vertical-align:middle; }
 
     @media (max-width:1100px) {
       .summary-grid,.project-results-grid,.tab-settings-grid { grid-template-columns:repeat(2,1fr); }
@@ -347,10 +359,7 @@
       </div>
       <div id="projectInputPanel">
         <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap;">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <h1 style="margin:0;color:var(--navy);">Project Input</h1>
-            <button class="btn-gear" id="statusManagerGearBtn" onclick="toggleStatusManager()" title="Customize task status options">⚙ Statuses</button>
-          </div>
+          <h1 style="margin:0;color:var(--navy);">Project Input</h1>
           <button class="btn-blue" id="addProjectSectionBtn">+ Add Project Section</button>
         </div>
         <div id="projectInputSections"></div>
@@ -522,7 +531,6 @@ let taskStatusOptions = [     // Project task status options — user-configurab
   { label: 'Done',        color: '#166534', bg: '#DCFCE7', done: true  },
   { label: 'On Hold',     color: '#374151', bg: '#F3F4F6', done: false },
 ];
-let statusManagerOpen = false;
 
 // ════════════════════════════════════════════════════════════
 //  HELPERS
@@ -1194,111 +1202,131 @@ function isDoneStatus(statusLabel) {
   return opt ? opt.done : statusLabel === 'Done';
 }
 
-function toggleStatusManager() {
-  statusManagerOpen = !statusManagerOpen;
-  const btn = document.getElementById('statusManagerGearBtn');
-  const panel = document.getElementById('statusManagerPanel');
-  if (btn) btn.classList.toggle('active', statusManagerOpen);
-  if (panel) panel.classList.toggle('hidden', !statusManagerOpen);
+// ── Popover: open anchored to the edit button ──
+function openStatusPopover(anchorEl) {
+  closeStatusPopover(); // close any existing one first
+
+  // Overlay to catch outside clicks
+  const overlay = document.createElement('div');
+  overlay.className = 'status-popover-overlay';
+  overlay.id = 'statusPopoverOverlay';
+  overlay.addEventListener('click', closeStatusPopover);
+  document.body.appendChild(overlay);
+
+  // Popover panel
+  const pop = document.createElement('div');
+  pop.className = 'status-popover';
+  pop.id = 'statusPopover';
+  pop.addEventListener('click', e => e.stopPropagation());
+  document.body.appendChild(pop);
+
+  // Position below the anchor button
+  const rect = anchorEl.getBoundingClientRect();
+  const popW = 320;
+  let left = rect.left;
+  if (left + popW > window.innerWidth - 12) left = window.innerWidth - popW - 12;
+  pop.style.top  = (rect.bottom + 8 + window.scrollY) + 'px';
+  pop.style.left = Math.max(8, left) + 'px';
+
+  renderStatusPopover();
 }
 
-function renderStatusManagerPanel() {
-  const panel = document.getElementById('statusManagerPanel');
-  if (!panel) return;
-  const doneIndex = taskStatusOptions.findIndex(o => o.done);
-  panel.innerHTML = `
-    <div class="status-manager">
-      <div class="status-manager-header">
-        <h4>Customize Status Options <span style="font-weight:400;text-transform:none;color:var(--muted);font-size:10px;">— the ★ marks which status counts as "done" for the progress circle</span></h4>
-      </div>
-      <div class="status-rows" id="statusRowsList">
-        ${taskStatusOptions.map((opt, i) => `
-          <div class="status-row">
-            <input type="text" value="${escapeHtml(opt.label)}"
-              oninput="updateStatusLabel(${i}, this.value)"
-              placeholder="Status label" />
-            <input type="color" value="${opt.bg}"
-              oninput="updateStatusBg(${i}, this.value)"
-              title="Badge background colour" />
-            <input type="color" value="${opt.color}"
-              oninput="updateStatusColor(${i}, this.value)"
-              title="Badge text colour" />
-            <label class="status-row-done" title="Mark as the 'Done' status for progress calculation">
-              <input type="radio" name="doneStatus" value="${i}" ${opt.done ? 'checked' : ''}
-                onchange="updateStatusDone(${i})" />
-              ★ Done
-            </label>
-            <button class="status-row-del" onclick="deleteStatusOption(${i})" title="Remove">×</button>
-          </div>
-        `).join('')}
-      </div>
-      <div class="status-manager-footer">
-        <button class="btn-blue" style="font-size:12px;padding:7px 14px;" onclick="addStatusOption()">+ Add Status</button>
-        <span style="font-size:11px;color:var(--muted);margin-left:8px;">Changes apply instantly to all task dropdowns</span>
-      </div>
+function closeStatusPopover() {
+  const ov  = document.getElementById('statusPopoverOverlay');
+  const pop = document.getElementById('statusPopover');
+  if (ov)  ov.remove();
+  if (pop) pop.remove();
+  // Remove active state from all edit buttons
+  document.querySelectorAll('.status-edit-btn').forEach(b => b.classList.remove('active'));
+}
+
+function renderStatusPopover() {
+  const pop = document.getElementById('statusPopover');
+  if (!pop) return;
+
+  pop.innerHTML = `
+    <div class="status-popover-header">
+      <h4>Edit Status Options</h4>
+      <button class="status-popover-close" onclick="closeStatusPopover()" title="Close">×</button>
     </div>
+    <div class="sp-rows">
+      ${taskStatusOptions.map((opt, i) => `
+        <div class="sp-row">
+          <span class="sp-row-drag" title="Option ${i+1}">⠿</span>
+          <input type="text"
+            value="${escapeHtml(opt.label)}"
+            placeholder="Status name"
+            oninput="spUpdateLabel(${i}, this.value)" />
+          <div class="sp-row-colors">
+            <input type="color" value="${opt.bg}"    oninput="spUpdateBg(${i},this.value)"    title="Background colour" />
+            <input type="color" value="${opt.color}" oninput="spUpdateColor(${i},this.value)" title="Text colour" />
+          </div>
+          <button class="sp-done-btn ${opt.done ? 'is-done' : ''}"
+            onclick="spSetDone(${i})"
+            title="${opt.done ? 'This counts as Done' : 'Mark as Done status'}">✓</button>
+          <button class="sp-row-del" onclick="spDelete(${i})" title="Remove status">×</button>
+        </div>
+      `).join('')}
+    </div>
+    <button class="sp-add-btn" onclick="spAdd()">+ Add Status</button>
+    <p class="sp-hint">✓ = counts as "Done" for progress · colours update badges instantly</p>
   `;
 }
 
-function updateStatusLabel(index, value) {
+function spUpdateLabel(index, value) {
   if (!taskStatusOptions[index]) return;
   const oldLabel = taskStatusOptions[index].label;
   taskStatusOptions[index].label = value;
-  // Update any existing tasks using the old label
-  projectData.forEach(section => {
-    section.tasks.forEach(task => {
-      if (task.status === oldLabel) task.status = value;
-    });
-  });
+  // Migrate existing tasks
+  projectData.forEach(s => s.tasks.forEach(t => { if (t.status === oldLabel) t.status = value; }));
   save();
   refreshTaskStatusDropdowns();
 }
 
-function updateStatusBg(index, value) {
+function spUpdateBg(index, value) {
   if (!taskStatusOptions[index]) return;
   taskStatusOptions[index].bg = value;
   save();
   refreshTaskStatusBadges();
 }
 
-function updateStatusColor(index, value) {
+function spUpdateColor(index, value) {
   if (!taskStatusOptions[index]) return;
   taskStatusOptions[index].color = value;
   save();
   refreshTaskStatusBadges();
 }
 
-function updateStatusDone(index) {
+function spSetDone(index) {
   taskStatusOptions.forEach((o, i) => { o.done = (i === index); });
   save();
-  renderProjectResults(); // progress circle depends on which status is "done"
+  renderStatusPopover();        // re-render popover to update ✓ highlights
+  renderProjectResults();       // update progress circle
 }
 
-function addStatusOption() {
+function spAdd() {
   taskStatusOptions.push({ label: 'New Status', color: '#374151', bg: '#F3F4F6', done: false });
   save();
-  renderStatusManagerPanel();
+  renderStatusPopover();
   refreshTaskStatusDropdowns();
 }
 
-function deleteStatusOption(index) {
+function spDelete(index) {
   if (taskStatusOptions.length <= 1) { alert('You must keep at least one status option.'); return; }
   taskStatusOptions.splice(index, 1);
-  // Ensure at least one is marked done
   if (!taskStatusOptions.some(o => o.done)) taskStatusOptions[0].done = true;
   save();
-  renderStatusManagerPanel();
+  renderStatusPopover();
   refreshTaskStatusDropdowns();
 }
 
-// Refresh only the <select> dropdowns inside task rows — no full re-render
+// Refresh only the <select> dropdowns — no full re-render
 function refreshTaskStatusDropdowns() {
   document.querySelectorAll('.task-status-select').forEach(select => {
     const currentVal = select.value;
     select.innerHTML = taskStatusOptions.map(opt =>
       `<option value="${escapeHtml(opt.label)}" ${currentVal === opt.label ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`
     ).join('');
-    // If current value no longer exists, default to first option
     if (!taskStatusOptions.find(o => o.label === currentVal) && taskStatusOptions.length) {
       select.value = taskStatusOptions[0].label;
     }
@@ -1306,7 +1334,7 @@ function refreshTaskStatusDropdowns() {
   refreshTaskStatusBadges();
 }
 
-// Refresh only the status badges in the results panel
+// Refresh only status badges in the results panel
 function refreshTaskStatusBadges() {
   document.querySelectorAll('.ptask-status[data-status]').forEach(el => {
     el.style.cssText = getStatusStyle(el.dataset.status);
@@ -1316,18 +1344,12 @@ function refreshTaskStatusBadges() {
 function renderProjectInput() {
   const container = document.getElementById('projectInputSections');
 
-  // ── Status manager panel (always rendered above the sections) ──
-  const managerHtml = `
-    <div id="statusManagerPanel" class="${statusManagerOpen ? '' : 'hidden'}"></div>
-  `;
-
   if (!projectData.length) {
-    container.innerHTML = managerHtml + '<div class="empty">No project sections yet.</div>';
-    if (statusManagerOpen) renderStatusManagerPanel();
+    container.innerHTML = '<div class="empty">No project sections yet.</div>';
     return;
   }
 
-  container.innerHTML = managerHtml + projectData.map(section => `
+  container.innerHTML = projectData.map(section => `
     <div class="input-section">
       <div class="input-section-top">
         <input class="section-name" value="${escapeHtml(section.name)}" oninput="updateProjectSection('${section.id}',this.value)" />
@@ -1342,15 +1364,14 @@ function renderProjectInput() {
                 `<option value="${escapeHtml(opt.label)}" ${task.status === opt.label ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`
               ).join('')}
             </select>
-            <button class="btn-danger" onclick="deleteTask('${section.id}','${task.id}')">Delete Task</button>
+            <button class="status-edit-btn" onclick="this.classList.toggle('active');openStatusPopover(this)" title="Edit status options">✎ Edit Statuses</button>
+            <button class="btn-danger" onclick="deleteTask('${section.id}','${task.id}')">Delete</button>
           </div>
         </div>
       `).join('')}
       <div style="margin-top:14px;"><button class="btn-blue" onclick="addTask('${section.id}')">+ Add Task</button></div>
     </div>
   `).join('');
-
-  if (statusManagerOpen) renderStatusManagerPanel();
 }
 
 function renderProjectResults() {
@@ -1626,10 +1647,10 @@ window.toggleSummaryCard=toggleSummaryCard; window.moveMetric=moveMetric;
 window.addProjectSection=addProjectSection; window.deleteProjectSection=deleteProjectSection;
 window.updateProjectSection=updateProjectSection;
 window.addTask=addTask; window.deleteTask=deleteTask; window.updateTask=updateTask;
-window.toggleStatusManager=toggleStatusManager; window.renderStatusManagerPanel=renderStatusManagerPanel;
-window.updateStatusLabel=updateStatusLabel; window.updateStatusBg=updateStatusBg;
-window.updateStatusColor=updateStatusColor; window.updateStatusDone=updateStatusDone;
-window.addStatusOption=addStatusOption; window.deleteStatusOption=deleteStatusOption;
+window.openStatusPopover=openStatusPopover; window.closeStatusPopover=closeStatusPopover;
+window.renderStatusPopover=renderStatusPopover;
+window.spUpdateLabel=spUpdateLabel; window.spUpdateBg=spUpdateBg; window.spUpdateColor=spUpdateColor;
+window.spSetDone=spSetDone; window.spAdd=spAdd; window.spDelete=spDelete;
 window.loadAllDataFromFirebase=loadAllDataFromFirebase; window.render=render;
 // NEW globals
 window.showCustomTab=showCustomTab; window.deleteCustomTab=deleteCustomTab;
