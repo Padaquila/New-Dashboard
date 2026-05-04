@@ -721,7 +721,7 @@ function clearAchievedData() {
   setData(d); save(); render();
 }
 
-function switchMonth(idx) { if (currentUserRole === 'viewer') return; activeMonthIndex=idx; save(); render(); }
+function switchMonth(idx) { activeMonthIndex=idx; if (currentUserRole !== 'viewer') save(); render(); }
 
 function showTab(tab) {
   if (currentUserRole === 'viewer' && tab === 'input') return; // viewers cannot open the Input tab
@@ -1624,8 +1624,7 @@ function applyViewerMode() {
   hide('inputTabBtn');
   hide('addCustomTabBtn');   // no creating new tabs
   hide('clearAchievedBtn');  // no clearing data
-  hide('monthTabsBar');      // no month switching
-  hide('activeMonthPill');   // hide month pill
+  // month tabs visible for viewers — they can browse results across all months
   hide('statusPanelBtn');    // no editing statuses
 
   // ── 2. Show Project Dashboard tab button — viewer CAN see project results ──
