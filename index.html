@@ -686,30 +686,37 @@ function showTab(tab) {
 function showCustomTab(tabId) {
   activeMainTab = 'custom';
   activeCustomTabId = tabId;
-  // Hide built-in tab sections
+
+  // 1. Hide all built-in tabs
   ['input','results','project'].forEach(t => {
     document.getElementById(t+'Tab').classList.add('hidden');
     document.getElementById(t+'TabBtn').classList.remove('active');
   });
-  document.getElementById('customTabPanels').classList.remove('hidden');
-  // Make sure the panel div exists before rendering into it
+
+  // 2. Ensure panel divs exist for all tabs (add missing, remove deleted)
   renderCustomTabPanels();
-  // Hide all custom tab panels, then show only the target
-  customTabs.forEach(t => {
-    const p = document.getElementById('ctab-panel-' + t.id);
-    if (p) p.classList.add('hidden');
-  });
-  // Update active button highlight
-  document.querySelectorAll('.custom-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tabid===tabId));
-  // Only render the panel content if it's empty (first visit) — never overwrite existing content
+
+  // 3. Hide EVERY custom panel — do this AFTER renderCustomTabPanels so all divs exist
+  const allPanels = document.querySelectorAll('[id^="ctab-panel-"]');
+  allPanels.forEach(p => p.classList.add('hidden'));
+
+  // 4. Show the container
+  document.getElementById('customTabPanels').classList.remove('hidden');
+
+  // 5. Render content into the target panel if it hasn't been rendered yet
   const panel = document.getElementById('ctab-panel-' + tabId);
   if (panel) {
-    panel.classList.remove('hidden');
     if (!panel.hasAttribute('data-rendered')) {
-      renderCustomTabPanel(tabId);
-      panel.setAttribute('data-rendered', '1');
+      renderCustomTabPanel(tabId); // sets data-rendered and removes hidden internally
+    } else {
+      panel.classList.remove('hidden');
     }
   }
+
+  // 6. Update active button highlight (after renderCustomTabButtons may have re-rendered them)
+  document.querySelectorAll('.custom-tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tabid === tabId);
+  });
 }
 
 function showProjectSubTab(tab) {
@@ -1404,17 +1411,15 @@ function render() {
   renderCustomTabButtons();
   renderCustomTabPanels(); // safe — only adds/removes panels, never touches existing content
   if (activeCustomTabId) {
-    document.getElementById('customTabPanels').classList.remove('hidden');
-    // Do NOT call renderCustomTabPanel here — it would destroy live form state.
-    // The panel was already rendered when the tab was first opened.
-    // Just ensure the right visibility is set:
-    customTabs.forEach(t => {
-      const p = document.getElementById('ctab-panel-' + t.id);
-      if (p) p.classList.toggle('hidden', t.id !== activeCustomTabId);
-    });
+    // Hide all built-in tab content
     ['input','results','project'].forEach(t => {
       document.getElementById(t+'Tab').classList.add('hidden');
       document.getElementById(t+'TabBtn').classList.remove('active');
+    });
+    document.getElementById('customTabPanels').classList.remove('hidden');
+    // Hide every panel, then show only the active one
+    document.querySelectorAll('[id^="ctab-panel-"]').forEach(p => {
+      p.classList.toggle('hidden', p.id !== 'ctab-panel-' + activeCustomTabId);
     });
   }
 }
