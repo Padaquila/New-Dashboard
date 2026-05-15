@@ -1731,5 +1731,638 @@ window.fmSyncOptValue=fmSyncOptValue; window.fmSave=fmSave; window.fmDeleteField
 window.addEntry=addEntry; window.deleteEntry=deleteEntry; window.updateEntry=updateEntry;
 window.switchCtabSubTab=switchCtabSubTab; window.refreshCtabSubTabLabels=refreshCtabSubTabLabels;
 </script>
+
+<!-- ════════════════════════════════════════════════════════════
+     WEEKLY REPORT — self-contained, no interference with existing code
+     ════════════════════════════════════════════════════════════ -->
+<style>
+  /* ── Floating trigger button ── */
+  #wrBtn {
+    position: fixed;
+    bottom: 28px;
+    left: 28px;
+    z-index: 8000;
+    background: var(--navy);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 800;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0,61,165,.35);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background .15s, transform .1s;
+    line-height: 1.3;
+    text-align: left;
+  }
+  #wrBtn:hover { background: #002B80; transform: translateY(-1px); }
+  #wrBtn .wr-icon { font-size: 18px; flex-shrink: 0; }
+  #wrBtn .wr-label { display: flex; flex-direction: column; gap: 1px; }
+  #wrBtn .wr-title { font-size: 13px; font-weight: 800; }
+  #wrBtn .wr-dates { font-size: 10px; font-weight: 600; opacity: .8; }
+
+  /* ── Modal overlay ── */
+  #wrOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 8500;
+    background: rgba(10,20,60,.55);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow-y: auto;
+  }
+  #wrOverlay.wr-hidden { display: none; }
+
+  /* ── Modal panel ── */
+  #wrModal {
+    background: #F0F2F5;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 860px;
+    box-shadow: 0 24px 80px rgba(0,0,0,.25);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── Modal header ── */
+  .wr-header {
+    background: linear-gradient(135deg, #003DA5 0%, #001f6b 100%);
+    color: white;
+    padding: 28px 32px 24px;
+    position: relative;
+  }
+  .wr-header::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(to right, #6B0010 50%, #E8000C 50%);
+  }
+  .wr-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .wr-header h2 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -.3px;
+  }
+  .wr-close {
+    background: rgba(255,255,255,.15);
+    border: none;
+    color: white;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-family: inherit;
+    line-height: 1;
+    transition: background .13s;
+  }
+  .wr-close:hover { background: rgba(255,255,255,.28); }
+
+  /* Date range controls */
+  .wr-date-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .wr-date-row label { font-size: 11px; font-weight: 800; opacity: .75; text-transform: uppercase; letter-spacing: .5px; }
+  .wr-date-input {
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 8px;
+    color: white;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 700;
+    outline: none;
+    cursor: pointer;
+  }
+  .wr-date-input::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+  .wr-date-input[readonly] { cursor: default; opacity: .9; }
+  .wr-date-sep { opacity: .6; font-weight: 800; }
+
+  /* ── Modal body ── */
+  .wr-body { padding: 24px 28px 32px; }
+
+  /* General notes box */
+  .wr-general-note {
+    background: white;
+    border: 1px solid #DDE1EA;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 4px rgba(0,61,165,.05);
+  }
+  .wr-general-note h4 {
+    margin: 0 0 10px;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    color: var(--navy);
+    border-left: 3px solid var(--red);
+    padding-left: 9px;
+  }
+  .wr-textarea {
+    width: 100%;
+    border: 1px solid #DDE1EA;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 72px;
+    outline: none;
+    color: #1A1F36;
+    line-height: 1.6;
+    transition: border-color .13s;
+    box-sizing: border-box;
+  }
+  .wr-textarea:focus { border-color: var(--navy); }
+  .wr-textarea[readonly] {
+    background: #F7F9FC;
+    cursor: default;
+    color: #374151;
+  }
+  .wr-viewer-note {
+    color: #6B7280;
+    font-size: 13px;
+    font-style: italic;
+    line-height: 1.6;
+  }
+
+  /* Section group */
+  .wr-section {
+    margin-bottom: 20px;
+    background: white;
+    border: 1px solid #DDE1EA;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,61,165,.05);
+  }
+  .wr-section-header {
+    background: var(--navy);
+    color: white;
+    padding: 10px 18px;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    border-left: 5px solid var(--red);
+  }
+
+  /* Metric row */
+  .wr-metric {
+    border-bottom: 1px solid #EEF0F5;
+    padding: 14px 18px;
+  }
+  .wr-metric:last-child { border-bottom: none; }
+  .wr-metric-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .wr-metric-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1A1F36;
+    flex: 1;
+    min-width: 160px;
+  }
+  .wr-metric-numbers {
+    font-size: 13px;
+    color: #6B7280;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .wr-metric-numbers strong { color: #1A1F36; }
+
+  /* Progress bar inside metric */
+  .wr-bar-wrap {
+    width: 100%;
+    height: 8px;
+    background: #EDF0F5;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .wr-bar {
+    height: 100%;
+    border-radius: 999px;
+    transition: width .4s ease;
+  }
+  .wr-pct-label {
+    font-size: 12px;
+    font-weight: 800;
+    margin-bottom: 10px;
+  }
+
+  /* Comment row */
+  .wr-comment-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: #9CA3AF;
+    margin-bottom: 5px;
+  }
+
+  /* Save button */
+  .wr-save-btn {
+    background: var(--navy);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-size: 13px;
+    font-weight: 800;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background .13s;
+  }
+  .wr-save-btn:hover { background: #002B80; }
+  .wr-saved-msg {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--green);
+    margin-left: 12px;
+    opacity: 0;
+    transition: opacity .3s;
+  }
+  .wr-saved-msg.visible { opacity: 1; }
+
+  .wr-empty {
+    padding: 32px;
+    text-align: center;
+    color: #9CA3AF;
+    font-size: 13px;
+  }
+
+  /* ── Modal inner tabs ── */
+  .wr-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 16px 28px 0;
+    background: #F0F2F5;
+    border-bottom: 1px solid #DDE1EA;
+  }
+  .wr-tab {
+    padding: 10px 22px;
+    border-radius: 8px 8px 0 0;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-bottom: none;
+    background: transparent;
+    color: #6B7280;
+    transition: background .13s, color .13s;
+  }
+  .wr-tab:hover { background: white; color: #003DA5; }
+  .wr-tab.active {
+    background: white;
+    color: #003DA5;
+    border-color: #DDE1EA;
+    border-bottom-color: white;
+    margin-bottom: -1px;
+  }
+
+  @media (max-width: 600px) {
+    .wr-body { padding: 16px 14px 24px; }
+    .wr-header { padding: 20px 18px 18px; }
+    #wrBtn { bottom: 16px; left: 16px; }
+  }
+</style>
+
+<!-- Floating button -->
+<button id="wrBtn" onclick="wrOpen()">
+  <span class="wr-icon">📊</span>
+  <span class="wr-label">
+    <span class="wr-title">This Week's Report</span>
+    <span class="wr-dates" id="wrBtnDates">Click to view</span>
+  </span>
+</button>
+
+<!-- Modal -->
+<div id="wrOverlay" class="wr-hidden" onclick="wrOverlayClick(event)">
+  <div id="wrModal">
+    <div class="wr-header">
+      <div class="wr-header-top">
+        <div>
+          <h2>📊 Weekly Report</h2>
+        </div>
+        <button class="wr-close" onclick="wrClose()">×</button>
+      </div>
+      <div class="wr-date-row">
+        <label>Week:</label>
+        <input type="date" id="wrDateFrom" class="wr-date-input" onchange="wrSaveDates()" />
+        <span class="wr-date-sep">→</span>
+        <input type="date" id="wrDateTo" class="wr-date-input" onchange="wrSaveDates()" />
+      </div>
+    </div>
+    <!-- Inner tabs -->
+    <div class="wr-tabs">
+      <button class="wr-tab active" id="wrTab-weekly"  onclick="wrSwitchTab('weekly')">📈 Weekly Dashboard</button>
+      <button class="wr-tab"        id="wrTab-projects" onclick="wrSwitchTab('projects')">📋 Project Dashboard</button>
+    </div>
+    <div class="wr-body" id="wrBody"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  WEEKLY REPORT — fully self-contained
+// ════════════════════════════════════════════════════════════
+let wrData = {
+  dateFrom: '',
+  dateTo: '',
+  generalNote: '',
+  comments: {}   // keyed by metric id
+};
+let wrActiveTab = 'weekly'; // 'weekly' or 'projects'
+
+// ── Load from Firebase ──
+async function wrLoad() {
+  const { db, doc, getDoc } = window._firebase;
+  try {
+    const snap = await getDoc(doc(db, 'shared', 'weeklyReport'));
+    if (snap.exists()) wrData = Object.assign({ dateFrom:'', dateTo:'', generalNote:'', comments:{} }, snap.data());
+  } catch(e) { /* first time — no doc yet, use defaults */ }
+  wrUpdateBtn();
+}
+
+// ── Save to Firebase (admin only) ──
+async function wrSave() {
+  if (currentUserRole !== 'admin') return;
+  const { db, doc, setDoc } = window._firebase;
+  try {
+    await setDoc(doc(db, 'shared', 'weeklyReport'), wrData);
+    const msg = document.getElementById('wrSavedMsg');
+    if (msg) { msg.classList.add('visible'); setTimeout(() => msg.classList.remove('visible'), 2000); }
+  } catch(e) { alert('Could not save report: ' + e.message); }
+}
+
+// ── Update floating button label ──
+function wrUpdateBtn() {
+  const el = document.getElementById('wrBtnDates');
+  if (!el) return;
+  if (wrData.dateFrom && wrData.dateTo) {
+    el.textContent = wrFmtDate(wrData.dateFrom) + ' – ' + wrFmtDate(wrData.dateTo);
+  } else {
+    el.textContent = 'Click to view';
+  }
+}
+
+function wrFmtDate(iso) {
+  if (!iso) return '';
+  const [y,m,d] = iso.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return d + ' ' + months[parseInt(m)-1];
+}
+
+// ── Switch inner tab ──
+function wrSwitchTab(tab) {
+  wrActiveTab = tab;
+  document.querySelectorAll('.wr-tab').forEach(b => b.classList.toggle('active', b.id === 'wrTab-' + tab));
+  wrRender();
+}
+
+// ── Open modal ──
+function wrOpen() {
+  wrActiveTab = 'weekly'; // always open on weekly tab
+  document.getElementById('wrOverlay').classList.remove('wr-hidden');
+  document.body.style.overflow = 'hidden';
+  // reset tab buttons
+  document.querySelectorAll('.wr-tab').forEach(b => b.classList.toggle('active', b.id === 'wrTab-weekly'));
+  wrRender();
+}
+
+// ── Close modal ──
+function wrClose() {
+  document.getElementById('wrOverlay').classList.add('wr-hidden');
+  document.body.style.overflow = '';
+}
+
+function wrOverlayClick(e) {
+  if (e.target === document.getElementById('wrOverlay')) wrClose();
+}
+
+// ── Save dates ──
+function wrSaveDates() {
+  wrData.dateFrom = document.getElementById('wrDateFrom').value;
+  wrData.dateTo   = document.getElementById('wrDateTo').value;
+  wrUpdateBtn();
+  // re-render header date display
+  const hdr = document.getElementById('wrHeaderDates');
+  if (hdr) hdr.textContent = wrData.dateFrom && wrData.dateTo
+    ? wrFmtDate(wrData.dateFrom) + ' – ' + wrFmtDate(wrData.dateTo)
+    : 'No dates set';
+}
+
+// ── Render modal body — dispatches to correct tab ──
+function wrRender() {
+  const isAdmin = currentUserRole === 'admin';
+
+  // Populate date inputs
+  const dfEl = document.getElementById('wrDateFrom');
+  const dtEl = document.getElementById('wrDateTo');
+  if (dfEl) { dfEl.value = wrData.dateFrom || ''; dfEl.readOnly = !isAdmin; }
+  if (dtEl) { dtEl.value = wrData.dateTo   || ''; dtEl.readOnly = !isAdmin; }
+  [dfEl, dtEl].forEach(el => { if (el && !isAdmin) el.style.opacity = '.85'; });
+
+  if (wrActiveTab === 'projects') {
+    wrRenderProjects(isAdmin);
+  } else {
+    wrRenderWeekly(isAdmin);
+  }
+}
+
+// ── Tab 1: Weekly Dashboard ──
+function wrRenderWeekly(isAdmin) {
+  const data = typeof getData === 'function' ? getData() : [];
+  const sectionsWithWeekly = [];
+  data.forEach(section => {
+    const metrics = section.metrics.filter(m => m.weeklyA || m.weeklyB);
+    if (metrics.length) sectionsWithWeekly.push({ ...section, metrics });
+  });
+
+  let html = '';
+
+  // General weekly note
+  html += `<div class="wr-general-note">
+    <h4>General Notes for the Week</h4>`;
+  if (isAdmin) {
+    html += `<textarea class="wr-textarea" placeholder="Add any overall notes, highlights, or context for this week…"
+      oninput="wrData.generalNote=this.value">${escapeHtml(wrData.generalNote || '')}</textarea>`;
+  } else {
+    html += wrData.generalNote
+      ? `<p class="wr-viewer-note">${escapeHtml(wrData.generalNote)}</p>`
+      : `<p class="wr-viewer-note" style="color:#C4CAD4;">No notes added yet.</p>`;
+  }
+  html += `</div>`;
+
+  // Metrics by section
+  if (!sectionsWithWeekly.length) {
+    html += `<div class="wr-empty">No weekly data entered yet.<br>Go to the Input tab and fill in weekly targets and achieved values.</div>`;
+  } else {
+    sectionsWithWeekly.forEach(section => {
+      html += `<div class="wr-section"><div class="wr-section-header">${escapeHtml(section.name)}</div>`;
+      section.metrics.forEach(metric => {
+        const a       = parseFloat(String(metric.weeklyA || '').replace(/,/g,''));
+        const b       = parseFloat(String(metric.weeklyB || '').replace(/,/g,''));
+        const pct     = metric.type === 'custom'
+          ? (isNaN(a) ? null : Math.max(0, a))
+          : (isNaN(a)||isNaN(b)||a<=0 ? null : Math.max(0,(b/a)*100));
+        const color   = pct===null ? '#C4CAD4' : pct<50 ? '#E2001A' : pct<80 ? '#D97706' : '#15803D';
+        const safePct = pct===null ? 0 : Math.min(pct, 100);
+        const pctTxt  = pct===null ? 'No data' : Math.round(pct)+'%';
+        const achieved = metric.type==='custom' ? pctTxt : (metric.weeklyB!==''&&metric.weeklyB!==undefined ? formatNumber(metric.weeklyB) : '—');
+        const target   = metric.type==='custom' ? '100%'  : (metric.weeklyA!==''&&metric.weeklyA!==undefined ? formatNumber(metric.weeklyA) : '—');
+        const comment  = wrData.comments[metric.id] || '';
+
+        html += `<div class="wr-metric">
+          <div class="wr-metric-top">
+            <span class="wr-metric-name">${escapeHtml(metric.name)}</span>
+            <span class="wr-metric-numbers"><strong>${achieved}</strong> / ${target}</span>
+          </div>
+          <div class="wr-pct-label" style="color:${color};">${pctTxt}</div>
+          <div class="wr-bar-wrap"><div class="wr-bar" style="width:${safePct}%;background:${color};"></div></div>
+          <div class="wr-comment-label">Admin Comment</div>`;
+
+        if (isAdmin) {
+          html += `<textarea class="wr-textarea" style="min-height:52px;" placeholder="Add a comment for this metric…"
+            oninput="wrData.comments['${metric.id}']=this.value">${escapeHtml(comment)}</textarea>`;
+        } else {
+          html += comment
+            ? `<p class="wr-viewer-note">${escapeHtml(comment)}</p>`
+            : `<p class="wr-viewer-note" style="color:#C4CAD4;">No comment yet.</p>`;
+        }
+        html += `</div>`; // wr-metric
+      });
+      html += `</div>`; // wr-section
+    });
+  }
+
+  if (isAdmin) {
+    html += `<button class="wr-save-btn" onclick="wrSave()">Save Report</button>
+      <span class="wr-saved-msg" id="wrSavedMsg">Saved ✓</span>`;
+  }
+  document.getElementById('wrBody').innerHTML = html;
+}
+
+// ── Tab 2: Project Dashboard ──
+function wrRenderProjects(isAdmin) {
+  let html = '';
+
+  if (!projectData || !projectData.length) {
+    html = `<div class="wr-empty">No projects found.<br>Add project sections in the Project Dashboard tab.</div>`;
+  } else {
+    projectData.forEach(section => {
+      const total     = section.tasks.length;
+      const done      = section.tasks.filter(t => isDoneStatus(t.status)).length;
+      const pct       = total ? Math.round((done / total) * 100) : null;
+      const color     = pct===null ? '#C4CAD4' : pct<50 ? '#E2001A' : pct<80 ? '#D97706' : '#15803D';
+      const safePct   = pct===null ? 0 : Math.min(pct, 100);
+      const pctTxt    = pct===null ? 'No tasks' : Math.round(pct)+'%';
+      const projComment = wrData.comments['proj_' + section.id] || '';
+
+      html += `<div class="wr-section" style="margin-bottom:16px;">
+        <div class="wr-section-header">${escapeHtml(section.name)}</div>
+        <div class="wr-metric">
+          <div class="wr-metric-top">
+            <span class="wr-metric-name">Overall Progress</span>
+            <span class="wr-metric-numbers"><strong>${done}</strong> / ${total} tasks done</span>
+          </div>
+          <div class="wr-pct-label" style="color:${color};">${pctTxt}</div>
+          <div class="wr-bar-wrap"><div class="wr-bar" style="width:${safePct}%;background:${color};"></div></div>`;
+
+      // Task list
+      if (section.tasks.length) {
+        html += `<div style="margin:10px 0 12px;">`;
+        section.tasks.forEach(task => {
+          const s          = getStatusStyle(task.status);
+          const bgMatch    = s.match(/background:([^;]+)/);
+          const colorMatch = s.match(/color:([^;]+)/);
+          const bg  = bgMatch    ? bgMatch[1].trim()    : '#F3F4F6';
+          const col = colorMatch ? colorMatch[1].trim() : '#374151';
+          html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F0F2F5;">
+            <span style="font-size:13px;color:#1A1F36;font-weight:600;">${escapeHtml(task.name)}</span>
+            <span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;background:${bg};color:${col};white-space:nowrap;">${escapeHtml(task.status)}</span>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+
+      html += `<div class="wr-comment-label">Admin Comment</div>`;
+      if (isAdmin) {
+        html += `<textarea class="wr-textarea" style="min-height:52px;" placeholder="Add a comment for this project…"
+          oninput="wrData.comments['proj_${section.id}']=this.value">${escapeHtml(projComment)}</textarea>`;
+      } else {
+        html += projComment
+          ? `<p class="wr-viewer-note">${escapeHtml(projComment)}</p>`
+          : `<p class="wr-viewer-note" style="color:#C4CAD4;">No comment yet.</p>`;
+      }
+      html += `</div></div>`; // wr-metric + wr-section
+    });
+  }
+
+  if (isAdmin) {
+    html += `<button class="wr-save-btn" onclick="wrSave()">Save Report</button>
+      <span class="wr-saved-msg" id="wrSavedMsg">Saved ✓</span>`;
+  }
+  document.getElementById('wrBody').innerHTML = html;
+}
+
+// ── Keyboard close ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') wrClose();
+});
+
+// ── Load on startup (called after Firebase is ready) ──
+// Hook into the existing onAuthStateChanged flow by patching window.render
+const _wrOrigRender = window.render;
+window.render = function() {
+  _wrOrigRender.apply(this, arguments);
+  // Load report data once after first render
+  if (window._firebase && window._firebase.auth.currentUser && !window._wrLoaded) {
+    window._wrLoaded = true;
+    wrLoad();
+  }
+};
+
+// Expose globals
+window.wrOpen         = wrOpen;
+window.wrClose        = wrClose;
+window.wrOverlayClick = wrOverlayClick;
+window.wrSaveDates    = wrSaveDates;
+window.wrSave         = wrSave;
+window.wrSwitchTab    = wrSwitchTab;
+</script>
+
 </body>
 </html>
