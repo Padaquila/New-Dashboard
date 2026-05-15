@@ -1730,6 +1730,12 @@ window.fmSelectType=fmSelectType; window.fmAddOpt=fmAddOpt; window.fmDelOpt=fmDe
 window.fmSyncOptValue=fmSyncOptValue; window.fmSave=fmSave; window.fmDeleteField=fmDeleteField;
 window.addEntry=addEntry; window.deleteEntry=deleteEntry; window.updateEntry=updateEntry;
 window.switchCtabSubTab=switchCtabSubTab; window.refreshCtabSubTabLabels=refreshCtabSubTabLabels;
+// Expose utilities needed by weekly report script
+window.escapeHtml=escapeHtml; window.formatNumber=formatNumber;
+window.getData=getData; window.isDoneStatus=isDoneStatus; window.getStatusStyle=getStatusStyle;
+// Make mutable state readable by weekly report script
+Object.defineProperty(window,'currentUserRole',{get:()=>currentUserRole,set:(v)=>{currentUserRole=v;}});
+Object.defineProperty(window,'projectData',{get:()=>projectData,set:(v)=>{projectData=v;}});
 </script>
 
 <!-- ════════════════════════════════════════════════════════════
@@ -2118,7 +2124,7 @@ async function wrLoad() {
 
 // ── Save to Firebase (admin only) ──
 async function wrSave() {
-  if (currentUserRole !== 'admin') return;
+  if (window.currentUserRole !== 'admin') return;
   const { db, doc, setDoc } = window._firebase;
   try {
     await setDoc(doc(db, 'shared', 'weeklyReport'), wrData);
@@ -2186,7 +2192,7 @@ function wrSaveDates() {
 
 // ── Render modal body — dispatches to correct tab ──
 function wrRender() {
-  const isAdmin = currentUserRole === 'admin';
+  const isAdmin = window.currentUserRole === 'admin';
 
   // Populate date inputs
   const dfEl = document.getElementById('wrDateFrom');
@@ -2204,7 +2210,7 @@ function wrRender() {
 
 // ── Tab 1: Weekly Dashboard ──
 function wrRenderWeekly(isAdmin) {
-  const data = typeof getData === 'function' ? getData() : [];
+  const data = typeof window.getData === 'function' ? window.getData() : [];
   const sectionsWithWeekly = [];
   data.forEach(section => {
     const metrics = section.metrics.filter(m => m.weeklyA || m.weeklyB);
@@ -2218,10 +2224,10 @@ function wrRenderWeekly(isAdmin) {
     <h4>General Notes for the Week</h4>`;
   if (isAdmin) {
     html += `<textarea class="wr-textarea" placeholder="Add any overall notes, highlights, or context for this week…"
-      oninput="wrData.generalNote=this.value">${escapeHtml(wrData.generalNote || '')}</textarea>`;
+      oninput="wrData.generalNote=this.value">${window.escapeHtml(wrData.generalNote || '')}</textarea>`;
   } else {
     html += wrData.generalNote
-      ? `<p class="wr-viewer-note">${escapeHtml(wrData.generalNote)}</p>`
+      ? `<p class="wr-viewer-note">${window.escapeHtml(wrData.generalNote)}</p>`
       : `<p class="wr-viewer-note" style="color:#C4CAD4;">No notes added yet.</p>`;
   }
   html += `</div>`;
@@ -2231,7 +2237,7 @@ function wrRenderWeekly(isAdmin) {
     html += `<div class="wr-empty">No weekly data entered yet.<br>Go to the Input tab and fill in weekly targets and achieved values.</div>`;
   } else {
     sectionsWithWeekly.forEach(section => {
-      html += `<div class="wr-section"><div class="wr-section-header">${escapeHtml(section.name)}</div>`;
+      html += `<div class="wr-section"><div class="wr-section-header">${window.escapeHtml(section.name)}</div>`;
       section.metrics.forEach(metric => {
         const a       = parseFloat(String(metric.weeklyA || '').replace(/,/g,''));
         const b       = parseFloat(String(metric.weeklyB || '').replace(/,/g,''));
@@ -2241,13 +2247,13 @@ function wrRenderWeekly(isAdmin) {
         const color   = pct===null ? '#C4CAD4' : pct<50 ? '#E2001A' : pct<80 ? '#D97706' : '#15803D';
         const safePct = pct===null ? 0 : Math.min(pct, 100);
         const pctTxt  = pct===null ? 'No data' : Math.round(pct)+'%';
-        const achieved = metric.type==='custom' ? pctTxt : (metric.weeklyB!==''&&metric.weeklyB!==undefined ? formatNumber(metric.weeklyB) : '—');
-        const target   = metric.type==='custom' ? '100%'  : (metric.weeklyA!==''&&metric.weeklyA!==undefined ? formatNumber(metric.weeklyA) : '—');
+        const achieved = metric.type==='custom' ? pctTxt : (metric.weeklyB!==''&&metric.weeklyB!==undefined ? window.formatNumber(metric.weeklyB) : '—');
+        const target   = metric.type==='custom' ? '100%'  : (metric.weeklyA!==''&&metric.weeklyA!==undefined ? window.formatNumber(metric.weeklyA) : '—');
         const comment  = wrData.comments[metric.id] || '';
 
         html += `<div class="wr-metric">
           <div class="wr-metric-top">
-            <span class="wr-metric-name">${escapeHtml(metric.name)}</span>
+            <span class="wr-metric-name">${window.escapeHtml(metric.name)}</span>
             <span class="wr-metric-numbers"><strong>${achieved}</strong> / ${target}</span>
           </div>
           <div class="wr-pct-label" style="color:${color};">${pctTxt}</div>
@@ -2256,10 +2262,10 @@ function wrRenderWeekly(isAdmin) {
 
         if (isAdmin) {
           html += `<textarea class="wr-textarea" style="min-height:52px;" placeholder="Add a comment for this metric…"
-            oninput="wrData.comments['${metric.id}']=this.value">${escapeHtml(comment)}</textarea>`;
+            oninput="wrData.comments['${metric.id}']=this.value">${window.escapeHtml(comment)}</textarea>`;
         } else {
           html += comment
-            ? `<p class="wr-viewer-note">${escapeHtml(comment)}</p>`
+            ? `<p class="wr-viewer-note">${window.escapeHtml(comment)}</p>`
             : `<p class="wr-viewer-note" style="color:#C4CAD4;">No comment yet.</p>`;
         }
         html += `</div>`; // wr-metric
@@ -2279,12 +2285,12 @@ function wrRenderWeekly(isAdmin) {
 function wrRenderProjects(isAdmin) {
   let html = '';
 
-  if (!projectData || !projectData.length) {
+  if (!window.projectData || !window.projectData.length) {
     html = `<div class="wr-empty">No projects found.<br>Add project sections in the Project Dashboard tab.</div>`;
   } else {
-    projectData.forEach(section => {
+    window.projectData.forEach(section => {
       const total     = section.tasks.length;
-      const done      = section.tasks.filter(t => isDoneStatus(t.status)).length;
+      const done      = section.tasks.filter(t => window.isDoneStatus(t.status)).length;
       const pct       = total ? Math.round((done / total) * 100) : null;
       const color     = pct===null ? '#C4CAD4' : pct<50 ? '#E2001A' : pct<80 ? '#D97706' : '#15803D';
       const safePct   = pct===null ? 0 : Math.min(pct, 100);
@@ -2292,7 +2298,7 @@ function wrRenderProjects(isAdmin) {
       const projComment = wrData.comments['proj_' + section.id] || '';
 
       html += `<div class="wr-section" style="margin-bottom:16px;">
-        <div class="wr-section-header">${escapeHtml(section.name)}</div>
+        <div class="wr-section-header">${window.escapeHtml(section.name)}</div>
         <div class="wr-metric">
           <div class="wr-metric-top">
             <span class="wr-metric-name">Overall Progress</span>
@@ -2305,14 +2311,14 @@ function wrRenderProjects(isAdmin) {
       if (section.tasks.length) {
         html += `<div style="margin:10px 0 12px;">`;
         section.tasks.forEach(task => {
-          const s          = getStatusStyle(task.status);
+          const s          = window.getStatusStyle(task.status);
           const bgMatch    = s.match(/background:([^;]+)/);
           const colorMatch = s.match(/color:([^;]+)/);
           const bg  = bgMatch    ? bgMatch[1].trim()    : '#F3F4F6';
           const col = colorMatch ? colorMatch[1].trim() : '#374151';
           html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F0F2F5;">
-            <span style="font-size:13px;color:#1A1F36;font-weight:600;">${escapeHtml(task.name)}</span>
-            <span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;background:${bg};color:${col};white-space:nowrap;">${escapeHtml(task.status)}</span>
+            <span style="font-size:13px;color:#1A1F36;font-weight:600;">${window.escapeHtml(task.name)}</span>
+            <span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;background:${bg};color:${col};white-space:nowrap;">${window.escapeHtml(task.status)}</span>
           </div>`;
         });
         html += `</div>`;
@@ -2321,10 +2327,10 @@ function wrRenderProjects(isAdmin) {
       html += `<div class="wr-comment-label">Admin Comment</div>`;
       if (isAdmin) {
         html += `<textarea class="wr-textarea" style="min-height:52px;" placeholder="Add a comment for this project…"
-          oninput="wrData.comments['proj_${section.id}']=this.value">${escapeHtml(projComment)}</textarea>`;
+          oninput="wrData.comments['proj_${section.id}']=this.value">${window.escapeHtml(projComment)}</textarea>`;
       } else {
         html += projComment
-          ? `<p class="wr-viewer-note">${escapeHtml(projComment)}</p>`
+          ? `<p class="wr-viewer-note">${window.escapeHtml(projComment)}</p>`
           : `<p class="wr-viewer-note" style="color:#C4CAD4;">No comment yet.</p>`;
       }
       html += `</div></div>`; // wr-metric + wr-section
