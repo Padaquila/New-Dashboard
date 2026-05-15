@@ -380,6 +380,15 @@
     <!-- ── CUSTOM TABS (rendered dynamically) ── -->
     <div id="customTabPanels"></div>
   </main>
+
+  <!-- Floating weekly report button — inside #app so hidden until logged in -->
+  <button id="wrBtn" onclick="wrOpen()" style="display:none;">
+    <span class="wr-icon">📊</span>
+    <span class="wr-label">
+      <span class="wr-title">This Week's Report</span>
+      <span class="wr-dates" id="wrBtnDates">Click to view</span>
+    </span>
+  </button>
 </div>
 
 <!-- ── FIREBASE SDK ── -->
@@ -411,6 +420,7 @@
       document.getElementById('userEmailLabel').textContent = user.email;
       await window.loadAllDataFromFirebase();
       window.render();
+      document.getElementById('wrBtn').style.display = 'flex'; // show report button after login
     } else {
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('app').style.display = 'none';
@@ -522,6 +532,8 @@ async function doLogin() {
 async function doLogout() {
   const { auth, signOut } = window._firebase;
   await signOut(auth);
+  const btn = document.getElementById('wrBtn');
+  if (btn) btn.style.display = 'none';
 }
 document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
@@ -2064,15 +2076,6 @@ Object.defineProperty(window,'projectData',{get:()=>projectData,set:(v)=>{projec
     #wrBtn { bottom: 16px; left: 16px; }
   }
 </style>
-
-<!-- Floating button -->
-<button id="wrBtn" onclick="wrOpen()">
-  <span class="wr-icon">📊</span>
-  <span class="wr-label">
-    <span class="wr-title">This Week's Report</span>
-    <span class="wr-dates" id="wrBtnDates">Click to view</span>
-  </span>
-</button>
 
 <!-- Modal -->
 <div id="wrOverlay" class="wr-hidden" onclick="wrOverlayClick(event)">
