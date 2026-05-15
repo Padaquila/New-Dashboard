@@ -40,6 +40,7 @@
 
     /* ── APP ── */
     #app { display:none; }
+    #app.app-loading { display:block; opacity:0; pointer-events:none; }
 
     header { position:relative; background:#F2EDE4; color:#0D0D0D; padding:28px 36px; display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap; overflow:hidden; }
     header::before { content:''; position:absolute; top:0; left:0; right:0; height:18px; background:linear-gradient(to right,#6B0010 50%,#E8000C 50%); }
@@ -297,6 +298,13 @@
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:relative;z-index:1;">
       <div id="activeMonthPill" class="month-pill"><span class="dot"></span><span id="activeMonthLabel">January</span></div>
       <button class="btn-warning" id="clearAchievedBtn" style="font-size:13px;">Clear Achieved Data</button>
+      <button id="wrBtn" onclick="wrOpen()" style="display:none;">
+        <span class="wr-icon">📊</span>
+        <span class="wr-label">
+          <span class="wr-title">This Week's Report</span>
+          <span class="wr-dates" id="wrBtnDates">Click to view</span>
+        </span>
+      </button>
       <div class="user-info">
         <span class="user-email" id="userEmailLabel"></span>
         <button class="btn-logout" onclick="doLogout()">Sign Out</button>
@@ -381,14 +389,6 @@
     <div id="customTabPanels"></div>
   </main>
 
-  <!-- Floating weekly report button — inside #app so hidden until logged in -->
-  <button id="wrBtn" onclick="wrOpen()" style="display:none;">
-    <span class="wr-icon">📊</span>
-    <span class="wr-label">
-      <span class="wr-title">This Week's Report</span>
-      <span class="wr-dates" id="wrBtnDates">Click to view</span>
-    </span>
-  </button>
 </div>
 
 <!-- ── FIREBASE SDK ── -->
@@ -415,15 +415,28 @@
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
+      // Show app invisibly while we load data + determine role
+      // This prevents the viewer from seeing the admin UI flash
+      const appEl = document.getElementById('app');
+      appEl.classList.add('app-loading'); // display:block but opacity:0
+
       document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('app').style.display = 'block';
       document.getElementById('userEmailLabel').textContent = user.email;
+
+      // Load all data — this sets currentUserRole inside
       await window.loadAllDataFromFirebase();
+
+      // Render into the invisible app
       window.render();
-      document.getElementById('wrBtn').style.display = 'flex'; // show report button after login
+      document.getElementById('wrBtn').style.display = 'flex';
+
+      // Now reveal the app — viewer restrictions already applied by render()
+      appEl.classList.remove('app-loading');
+      appEl.style.display = 'block';
     } else {
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('app').style.display = 'none';
+      document.getElementById('app').classList.remove('app-loading');
     }
   });
 </script>
@@ -1756,31 +1769,28 @@ Object.defineProperty(window,'projectData',{get:()=>projectData,set:(v)=>{projec
 <style>
   /* ── Floating trigger button ── */
   #wrBtn {
-    position: fixed;
-    bottom: 28px;
-    left: 28px;
-    z-index: 8000;
     background: var(--navy);
     color: white;
     border: none;
-    border-radius: 14px;
-    padding: 12px 20px;
-    font-size: 13px;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 12px;
     font-weight: 800;
     font-family: inherit;
     cursor: pointer;
-    box-shadow: 0 4px 20px rgba(0,61,165,.35);
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: background .15s, transform .1s;
+    gap: 7px;
+    transition: background .15s;
     line-height: 1.3;
     text-align: left;
+    position: relative;
+    z-index: 1;
   }
-  #wrBtn:hover { background: #002B80; transform: translateY(-1px); }
-  #wrBtn .wr-icon { font-size: 18px; flex-shrink: 0; }
-  #wrBtn .wr-label { display: flex; flex-direction: column; gap: 1px; }
-  #wrBtn .wr-title { font-size: 13px; font-weight: 800; }
+  #wrBtn:hover { background: #002B80; }
+  #wrBtn .wr-icon { font-size: 15px; flex-shrink: 0; }
+  #wrBtn .wr-label { display: flex; flex-direction: column; gap: 0px; }
+  #wrBtn .wr-title { font-size: 12px; font-weight: 800; }
   #wrBtn .wr-dates { font-size: 10px; font-weight: 600; opacity: .8; }
 
   /* ── Modal overlay ── */
@@ -1901,32 +1911,66 @@ Object.defineProperty(window,'projectData',{get:()=>projectData,set:(v)=>{projec
     border-left: 3px solid var(--red);
     padding-left: 9px;
   }
-  .wr-textarea {
-    width: 100%;
+  /* ── Rich text editor ── */
+  .wr-editor-wrap {
     border: 1px solid #DDE1EA;
     border-radius: 8px;
-    padding: 10px 12px;
+    overflow: hidden;
+    transition: border-color .13s;
+    background: white;
+  }
+  .wr-editor-wrap:focus-within { border-color: var(--navy); }
+  .wr-editor-toolbar {
+    display: flex;
+    gap: 2px;
+    padding: 5px 7px;
+    background: #F7F9FC;
+    border-bottom: 1px solid #DDE1EA;
+  }
+  .wr-tb-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    color: #374151;
+    font-weight: 700;
+    line-height: 1.4;
+    transition: background .1s, border-color .1s;
+  }
+  .wr-tb-btn:hover { background: #EEF2FF; border-color: #C7D7FE; color: var(--navy); }
+  .wr-tb-btn[data-cmd="bold"]      { font-weight: 900; }
+  .wr-tb-btn[data-cmd="underline"] { text-decoration: underline; }
+  .wr-editor-body {
+    min-height: 68px;
+    padding: 9px 12px;
     font-size: 13px;
     font-family: inherit;
-    resize: vertical;
-    min-height: 72px;
-    outline: none;
     color: #1A1F36;
     line-height: 1.6;
-    transition: border-color .13s;
-    box-sizing: border-box;
+    outline: none;
+    white-space: pre-wrap;
+    word-break: break-word;
   }
-  .wr-textarea:focus { border-color: var(--navy); }
-  .wr-textarea[readonly] {
-    background: #F7F9FC;
-    cursor: default;
-    color: #374151;
+  .wr-editor-body:empty::before {
+    content: attr(placeholder);
+    color: #C4CAD4;
+    pointer-events: none;
+    display: block;
   }
   .wr-viewer-note {
-    color: #6B7280;
+    color: #4B5563;
+    font-size: 13px;
+    line-height: 1.7;
+    word-break: break-word;
+    padding: 2px 0;
+  }
+  .wr-viewer-note-empty {
+    color: #C4CAD4;
     font-size: 13px;
     font-style: italic;
-    line-height: 1.6;
   }
 
   /* Section group */
@@ -2073,7 +2117,7 @@ Object.defineProperty(window,'projectData',{get:()=>projectData,set:(v)=>{projec
   @media (max-width: 600px) {
     .wr-body { padding: 16px 14px 24px; }
     .wr-header { padding: 20px 18px 18px; }
-    #wrBtn { bottom: 16px; left: 16px; }
+    /* wrBtn is in header — no mobile override needed */
   }
 </style>
 
@@ -2193,6 +2237,35 @@ function wrSaveDates() {
     : 'No dates set';
 }
 
+// ── Rich text editor builder ──
+function wrEditor(storageKey, subKey, placeholder, minHeight) {
+  // storageKey: 'generalNote' | 'comments'
+  // subKey: null for generalNote, metric.id or 'proj_xxx' for comments
+  const val = subKey
+    ? (wrData.comments[subKey] || '')
+    : (wrData.generalNote || '');
+  const inputHandler = subKey
+    ? `wrData.comments['${subKey}']=this.innerHTML`
+    : `wrData.generalNote=this.innerHTML`;
+  return `<div class="wr-editor-wrap">
+    <div class="wr-editor-toolbar">
+      <button type="button" class="wr-tb-btn" data-cmd="bold"
+        onmousedown="event.preventDefault();document.execCommand('bold');" title="Bold">B</button>
+      <button type="button" class="wr-tb-btn" data-cmd="underline"
+        onmousedown="event.preventDefault();document.execCommand('underline');" title="Underline">U</button>
+    </div>
+    <div class="wr-editor-body" contenteditable="true"
+      style="min-height:${minHeight || 68}px;"
+      placeholder="${placeholder}"
+      oninput="${inputHandler}">${val}</div>
+  </div>`;
+}
+
+function wrViewerNote(html) {
+  if (!html || html === '<br>') return `<p class="wr-viewer-note-empty">No comment yet.</p>`;
+  return `<div class="wr-viewer-note">${html}</div>`;
+}
+
 // ── Render modal body — dispatches to correct tab ──
 function wrRender() {
   const isAdmin = window.currentUserRole === 'admin';
@@ -2226,12 +2299,11 @@ function wrRenderWeekly(isAdmin) {
   html += `<div class="wr-general-note">
     <h4>General Notes for the Week</h4>`;
   if (isAdmin) {
-    html += `<textarea class="wr-textarea" placeholder="Add any overall notes, highlights, or context for this week…"
-      oninput="wrData.generalNote=this.value">${window.escapeHtml(wrData.generalNote || '')}</textarea>`;
+    html += wrEditor('generalNote', null, 'Add any overall notes, highlights, or context for this week…', 90);
   } else {
     html += wrData.generalNote
-      ? `<p class="wr-viewer-note">${window.escapeHtml(wrData.generalNote)}</p>`
-      : `<p class="wr-viewer-note" style="color:#C4CAD4;">No notes added yet.</p>`;
+      ? wrViewerNote(wrData.generalNote)
+      : `<p class="wr-viewer-note-empty">No notes added yet.</p>`;
   }
   html += `</div>`;
 
@@ -2264,12 +2336,9 @@ function wrRenderWeekly(isAdmin) {
           <div class="wr-comment-label">Admin Comment</div>`;
 
         if (isAdmin) {
-          html += `<textarea class="wr-textarea" style="min-height:52px;" placeholder="Add a comment for this metric…"
-            oninput="wrData.comments['${metric.id}']=this.value">${window.escapeHtml(comment)}</textarea>`;
+          html += wrEditor('comments', metric.id, 'Add a comment for this metric…', 52);
         } else {
-          html += comment
-            ? `<p class="wr-viewer-note">${window.escapeHtml(comment)}</p>`
-            : `<p class="wr-viewer-note" style="color:#C4CAD4;">No comment yet.</p>`;
+          html += wrViewerNote(comment);
         }
         html += `</div>`; // wr-metric
       });
@@ -2329,12 +2398,9 @@ function wrRenderProjects(isAdmin) {
 
       html += `<div class="wr-comment-label">Admin Comment</div>`;
       if (isAdmin) {
-        html += `<textarea class="wr-textarea" style="min-height:52px;" placeholder="Add a comment for this project…"
-          oninput="wrData.comments['proj_${section.id}']=this.value">${window.escapeHtml(projComment)}</textarea>`;
+        html += wrEditor('comments', 'proj_' + section.id, 'Add a comment for this project…', 52);
       } else {
-        html += projComment
-          ? `<p class="wr-viewer-note">${window.escapeHtml(projComment)}</p>`
-          : `<p class="wr-viewer-note" style="color:#C4CAD4;">No comment yet.</p>`;
+        html += wrViewerNote(projComment);
       }
       html += `</div></div>`; // wr-metric + wr-section
     });
@@ -2371,6 +2437,8 @@ window.wrOverlayClick = wrOverlayClick;
 window.wrSaveDates    = wrSaveDates;
 window.wrSave         = wrSave;
 window.wrSwitchTab    = wrSwitchTab;
+window.wrEditor       = wrEditor;
+window.wrViewerNote   = wrViewerNote;
 </script>
 
 </body>
