@@ -1941,8 +1941,13 @@ Object.defineProperty(window,'projectData',{get:()=>projectData,set:(v)=>{projec
     transition: background .1s, border-color .1s;
   }
   .wr-tb-btn:hover { background: #EEF2FF; border-color: #C7D7FE; color: var(--navy); }
-  .wr-tb-btn[data-cmd="bold"]      { font-weight: 900; }
-  .wr-tb-btn[data-cmd="underline"] { text-decoration: underline; }
+  .wr-tb-btn[data-cmd="bold"]            { font-weight: 900; }
+  .wr-tb-btn[data-cmd="underline"]       { text-decoration: underline; }
+  .wr-tb-btn[data-cmd="insertUnorderedList"] { letter-spacing: -1px; }
+  .wr-tb-divider { width: 1px; background: #DDE1EA; margin: 2px 4px; align-self: stretch; }
+  /* Ensure bullet lists render correctly inside editor and viewer */
+  .wr-editor-body ul, .wr-viewer-note ul { margin: 4px 0; padding-left: 20px; }
+  .wr-editor-body li, .wr-viewer-note li { margin: 2px 0; line-height: 1.6; }
   .wr-editor-body {
     min-height: 68px;
     padding: 9px 12px;
@@ -2253,6 +2258,9 @@ function wrEditor(storageKey, subKey, placeholder, minHeight) {
         onmousedown="event.preventDefault();document.execCommand('bold');" title="Bold">B</button>
       <button type="button" class="wr-tb-btn" data-cmd="underline"
         onmousedown="event.preventDefault();document.execCommand('underline');" title="Underline">U</button>
+      <div class="wr-tb-divider"></div>
+      <button type="button" class="wr-tb-btn" data-cmd="insertUnorderedList"
+        onmousedown="event.preventDefault();document.execCommand('insertUnorderedList');" title="Bullet list">• List</button>
     </div>
     <div class="wr-editor-body" contenteditable="true"
       style="min-height:${minHeight || 68}px;"
@@ -2262,7 +2270,9 @@ function wrEditor(storageKey, subKey, placeholder, minHeight) {
 }
 
 function wrViewerNote(html) {
-  if (!html || html === '<br>') return `<p class="wr-viewer-note-empty">No comment yet.</p>`;
+  // Strip tags and whitespace to check if there's actual content
+  const stripped = (html || '').replace(/<[^>]*>/g, '').trim();
+  if (!stripped) return `<p class="wr-viewer-note-empty">No comment yet.</p>`;
   return `<div class="wr-viewer-note">${html}</div>`;
 }
 
