@@ -305,7 +305,6 @@
           <span class="wr-dates" id="wrBtnDates">Click to view</span>
         </span>
       </button>
-
       <div class="user-info">
         <span class="user-email" id="userEmailLabel"></span>
         <button class="btn-logout" onclick="doLogout()">Sign Out</button>
@@ -434,7 +433,6 @@
       // Now reveal the app — viewer restrictions already applied by render()
       appEl.classList.remove('app-loading');
       appEl.style.display = 'block';
-
     } else {
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('app').style.display = 'none';
@@ -549,7 +547,6 @@ async function doLogout() {
   await signOut(auth);
   const btn = document.getElementById('wrBtn');
   if (btn) btn.style.display = 'none';
-
 }
 document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
@@ -754,7 +751,6 @@ function switchMonth(idx) { activeMonthIndex=idx; if (currentUserRole !== 'viewe
 function showTab(tab) {
   if (currentUserRole === 'viewer' && tab === 'input') return; // viewers cannot open the Input tab
   activeMainTab = tab;
-
   activeCustomTabId = null;
   ['input','results','project'].forEach(t => {
     document.getElementById(t+'Tab').classList.toggle('hidden', t!==tab);
@@ -768,7 +764,6 @@ function showTab(tab) {
 
 function showCustomTab(tabId) {
   activeMainTab = 'custom';
-
   activeCustomTabId = tabId;
 
   // 1. Hide all built-in tabs
@@ -806,7 +801,6 @@ function showCustomTab(tabId) {
 function showProjectSubTab(tab) {
   if (currentUserRole === 'viewer' && tab === 'input') return; // viewers cannot open Project Input
   activeProjectSubTab = tab;
-
   document.getElementById('projectInputPanel').classList.toggle('hidden', tab!=='input');
   document.getElementById('projectResultsPanel').classList.toggle('hidden', tab!=='results');
   document.getElementById('projectInputSubBtn').classList.toggle('active', tab==='input');
@@ -2351,12 +2345,12 @@ function wrDownload() {
     Generated on ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}
     · REMAX Premier Dashboard
   </div>
-  ${'<script>'}
+  <script>
     // Auto-trigger print dialog
     window.onload = function() { window.print(); };
-  ${'</script>'}
-
-
+  <\/script>
+</body>
+</html>`;
 
   const win = window.open('', '_blank');
   if (!win) { alert('Please allow pop-ups for this site to download the report.'); return; }
@@ -2393,7 +2387,6 @@ function wrSwitchTab(tab) {
 function wrOpen() {
   wrActiveTab = 'weekly'; // always open on weekly tab
   document.getElementById('wrOverlay').classList.remove('wr-hidden');
-
   document.body.style.overflow = 'hidden';
   // reset tab buttons
   document.querySelectorAll('.wr-tab').forEach(b => b.classList.toggle('active', b.id === 'wrTab-weekly'));
@@ -2633,8 +2626,6 @@ window.wrEditor       = wrEditor;
 window.wrViewerNote   = wrViewerNote;
 window.wrDownload     = wrDownload;
 </script>
-
-
 
 </body>
 </html>
