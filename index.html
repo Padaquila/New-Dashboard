@@ -2071,6 +2071,21 @@ Object.defineProperty(window,'projectData',{get:()=>projectData,set:(v)=>{projec
     transition: background .13s;
   }
   .wr-save-btn:hover { background: #002B80; }
+  .wr-download-btn {
+    background: white;
+    color: var(--navy);
+    border: 2px solid var(--navy);
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-size: 13px;
+    font-weight: 800;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 20px;
+    margin-left: 10px;
+    transition: background .13s, color .13s;
+  }
+  .wr-download-btn:hover { background: var(--navy); color: white; }
   .wr-saved-msg {
     display: inline-block;
     font-size: 12px;
@@ -2183,6 +2198,164 @@ async function wrSave() {
     const msg = document.getElementById('wrSavedMsg');
     if (msg) { msg.classList.add('visible'); setTimeout(() => msg.classList.remove('visible'), 2000); }
   } catch(e) { alert('Could not save report: ' + e.message); }
+}
+
+// ── Download report as PDF ──
+function wrDownload() {
+  // Build a complete standalone HTML page mirroring the modal content
+  const dateRange = (wrData.dateFrom && wrData.dateTo)
+    ? wrFmtDate(wrData.dateFrom) + ' – ' + wrFmtDate(wrData.dateTo)
+    : 'Date not set';
+
+  // Grab rendered body content from the current active tab
+  const bodyEl = document.getElementById('wrBody');
+  if (!bodyEl) return;
+
+  // Clone body HTML — strip contenteditable and toolbar, keep only display content
+  let bodyClone = bodyEl.cloneNode(true);
+
+  // Replace each editor wrap (contenteditable) with a plain div showing its content
+  bodyClone.querySelectorAll('.wr-editor-wrap').forEach(wrap => {
+    const editorBody = wrap.querySelector('.wr-editor-body');
+    const content = editorBody ? editorBody.innerHTML : '';
+    const div = document.createElement('div');
+    div.className = 'wr-viewer-note';
+    div.style.cssText = 'color:#4B5563;font-size:13px;line-height:1.7;word-break:break-word;padding:2px 0;';
+    div.innerHTML = content || '<span style="color:#C4CAD4;font-style:italic;">No comment</span>';
+    wrap.replaceWith(div);
+  });
+
+  // Remove save/download buttons from clone
+  bodyClone.querySelectorAll('.wr-save-btn, .wr-download-btn, .wr-saved-msg').forEach(el => el.remove());
+
+  const tabLabel = wrActiveTab === 'projects' ? 'Project Dashboard' : 'Weekly Dashboard';
+
+  const printHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>REMAX Weekly Report — ${dateRange}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Montserrat", sans-serif; background: #F0F2F5; color: #1A1F36; padding: 0; }
+
+    /* ── Page header ── */
+    .print-header {
+      background: linear-gradient(135deg, #003DA5 0%, #001f6b 100%);
+      color: white;
+      padding: 28px 36px 24px;
+      position: relative;
+    }
+    .print-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(to right, #6B0010 50%, #E8000C 50%);
+    }
+    .print-header h1 { font-size: 22px; font-weight: 900; margin-bottom: 4px; }
+    .print-header .sub { font-size: 13px; opacity: .8; font-weight: 600; }
+    .print-header .dates { font-size: 15px; font-weight: 800; margin-top: 8px; opacity: .95; }
+    .print-tab-label {
+      display: inline-block;
+      background: rgba(255,255,255,.18);
+      border-radius: 20px;
+      padding: 3px 14px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-top: 10px;
+    }
+
+    /* ── Body ── */
+    .print-body { padding: 24px 36px 40px; }
+
+    /* General note */
+    .wr-general-note {
+      background: white;
+      border: 1px solid #DDE1EA;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(0,61,165,.05);
+    }
+    .wr-general-note h4 {
+      font-size: 11px; font-weight: 900; text-transform: uppercase;
+      letter-spacing: .7px; color: #003DA5;
+      border-left: 3px solid #E2001A; padding-left: 9px; margin-bottom: 10px;
+    }
+
+    /* Sections */
+    .wr-section {
+      background: white; border: 1px solid #DDE1EA;
+      border-radius: 12px; overflow: hidden;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,61,165,.05);
+      break-inside: avoid;
+    }
+    .wr-section-header {
+      background: #003DA5; color: white;
+      padding: 10px 18px; font-size: 11px; font-weight: 900;
+      text-transform: uppercase; letter-spacing: .8px;
+      border-left: 5px solid #E2001A;
+    }
+    .wr-metric { border-bottom: 1px solid #EEF0F5; padding: 14px 18px; }
+    .wr-metric:last-child { border-bottom: none; }
+    .wr-metric-top { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; flex-wrap: wrap; }
+    .wr-metric-name { font-size: 14px; font-weight: 700; flex: 1; }
+    .wr-metric-numbers { font-size: 13px; color: #6B7280; font-weight: 600; white-space: nowrap; }
+    .wr-metric-numbers strong { color: #1A1F36; }
+    .wr-pct-label { font-size: 12px; font-weight: 800; margin-bottom: 8px; }
+    .wr-bar-wrap { width: 100%; height: 8px; background: #EDF0F5; border-radius: 999px; overflow: hidden; margin-bottom: 10px; }
+    .wr-bar { height: 100%; border-radius: 999px; }
+    .wr-comment-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: #9CA3AF; margin-bottom: 5px; }
+    .wr-viewer-note { color: #4B5563; font-size: 13px; line-height: 1.7; word-break: break-word; padding: 2px 0; }
+    .wr-viewer-note ul { margin: 4px 0; padding-left: 20px; }
+    .wr-viewer-note li { margin: 2px 0; line-height: 1.6; }
+
+    /* Footer */
+    .print-footer {
+      text-align: center; color: #9CA3AF;
+      font-size: 11px; margin-top: 32px; padding-top: 16px;
+      border-top: 1px solid #DDE1EA;
+    }
+
+    @media print {
+      body { background: white; }
+      .print-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .wr-section-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .wr-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .wr-bar-wrap { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-header">
+    <h1>📊 Weekly Report</h1>
+    <div class="sub">REMAX Premier Dashboard</div>
+    <div class="dates">${dateRange}</div>
+    <div class="print-tab-label">${tabLabel}</div>
+  </div>
+  <div class="print-body">
+    ${bodyClone.innerHTML}
+  </div>
+  <div class="print-footer">
+    Generated on ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}
+    · REMAX Premier Dashboard
+  </div>
+  <script>
+    // Auto-trigger print dialog
+    window.onload = function() { window.print(); };
+  <\/script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  if (!win) { alert('Please allow pop-ups for this site to download the report.'); return; }
+  win.document.write(printHTML);
+  win.document.close();
 }
 
 // ── Update floating button label ──
@@ -2358,6 +2531,7 @@ function wrRenderWeekly(isAdmin) {
 
   if (isAdmin) {
     html += `<button class="wr-save-btn" onclick="wrSave()">Save Report</button>
+      <button class="wr-download-btn" onclick="wrDownload()">⬇ Download PDF</button>
       <span class="wr-saved-msg" id="wrSavedMsg">Saved ✓</span>`;
   }
   document.getElementById('wrBody').innerHTML = html;
@@ -2418,6 +2592,7 @@ function wrRenderProjects(isAdmin) {
 
   if (isAdmin) {
     html += `<button class="wr-save-btn" onclick="wrSave()">Save Report</button>
+      <button class="wr-download-btn" onclick="wrDownload()">⬇ Download PDF</button>
       <span class="wr-saved-msg" id="wrSavedMsg">Saved ✓</span>`;
   }
   document.getElementById('wrBody').innerHTML = html;
@@ -2449,6 +2624,7 @@ window.wrSave         = wrSave;
 window.wrSwitchTab    = wrSwitchTab;
 window.wrEditor       = wrEditor;
 window.wrViewerNote   = wrViewerNote;
+window.wrDownload     = wrDownload;
 </script>
 
 </body>
