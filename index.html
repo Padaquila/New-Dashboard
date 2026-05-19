@@ -305,6 +305,10 @@
           <span class="wr-dates" id="wrBtnDates">Click to view</span>
         </span>
       </button>
+      <button id="actLogBtn" onclick="actLogOpen()" style="display:none;position:relative;background:white;border:1px solid var(--border);border-radius:8px;padding:7px 13px;font-size:12px;font-weight:800;font-family:inherit;cursor:pointer;color:var(--navy);transition:background .13s;">
+        🔔 Activity
+        <span id="actLogBadge" style="display:none;position:absolute;top:-5px;right:-5px;background:var(--red);color:white;font-size:10px;font-weight:900;border-radius:999px;padding:2px 6px;min-width:18px;text-align:center;"></span>
+      </button>
       <div class="user-info">
         <span class="user-email" id="userEmailLabel"></span>
         <button class="btn-logout" onclick="doLogout()">Sign Out</button>
@@ -433,6 +437,15 @@
       // Now reveal the app — viewer restrictions already applied by render()
       appEl.classList.remove('app-loading');
       appEl.style.display = 'block';
+
+      // Activity log: show button for admin, log login for viewer
+      if (currentUserRole === 'admin') {
+        document.getElementById('actLogBtn').style.display = 'block';
+        window.actLoad();        // load existing logs
+        window.actStartPolling(); // poll for new events
+      } else if (currentUserRole === 'viewer') {
+        window.actLogLogin(user.email); // record this login
+      }
     } else {
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('app').style.display = 'none';
@@ -547,6 +560,8 @@ async function doLogout() {
   await signOut(auth);
   const btn = document.getElementById('wrBtn');
   if (btn) btn.style.display = 'none';
+  const actBtn = document.getElementById('actLogBtn');
+  if (actBtn) actBtn.style.display = 'none';
 }
 document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
@@ -746,11 +761,21 @@ function clearAchievedData() {
   setData(d); save(); render();
 }
 
-function switchMonth(idx) { activeMonthIndex=idx; if (currentUserRole !== 'viewer') save(); render(); }
+function switchMonth(idx) {
+  activeMonthIndex=idx;
+  if (currentUserRole !== 'viewer') save();
+  else { window.actTrackSection && window.actTrackSection(MONTHS[idx] + ' Results'); }
+  render();
+}
 
 function showTab(tab) {
   if (currentUserRole === 'viewer' && tab === 'input') return; // viewers cannot open the Input tab
   activeMainTab = tab;
+  // Track section visit for activity log
+  if (currentUserRole === 'viewer') {
+    const labels = { results: 'Results Dashboard', project: 'Project Dashboard' };
+    if (labels[tab]) window.actTrackSection && window.actTrackSection(labels[tab]);
+  }
   activeCustomTabId = null;
   ['input','results','project'].forEach(t => {
     document.getElementById(t+'Tab').classList.toggle('hidden', t!==tab);
@@ -764,6 +789,10 @@ function showTab(tab) {
 
 function showCustomTab(tabId) {
   activeMainTab = 'custom';
+  if (currentUserRole === 'viewer') {
+    const tab = customTabs.find(t => t.id === tabId);
+    if (tab) window.actTrackSection && window.actTrackSection(tab.name + ' (Results)');
+  }
   activeCustomTabId = tabId;
 
   // 1. Hide all built-in tabs
@@ -801,6 +830,9 @@ function showCustomTab(tabId) {
 function showProjectSubTab(tab) {
   if (currentUserRole === 'viewer' && tab === 'input') return; // viewers cannot open Project Input
   activeProjectSubTab = tab;
+  if (currentUserRole === 'viewer' && tab === 'results') {
+    window.actTrackSection && window.actTrackSection('Project Results');
+  }
   document.getElementById('projectInputPanel').classList.toggle('hidden', tab!=='input');
   document.getElementById('projectResultsPanel').classList.toggle('hidden', tab!=='results');
   document.getElementById('projectInputSubBtn').classList.toggle('active', tab==='input');
@@ -2349,6 +2381,298 @@ function wrDownload() {
     // Auto-trigger print dialog
     window.onload = function() { window.print(); };
   <\/script>
+
+<!-- ════════════════════════════════════════════════════════════
+     ACTIVITY LOG — admin only, self-contained
+     ════════════════════════════════════════════════════════════ -->
+<style>
+  #actLogOverlay {
+    position:fixed; inset:0; z-index:9500;
+    background:rgba(10,20,60,.5);
+    backdrop-filter:blur(3px);
+    display:flex; align-items:flex-start; justify-content:flex-end;
+    padding:80px 24px 24px;
+  }
+  #actLogOverlay.act-hidden { display:none; }
+  #actLogPanel {
+    background:white; border-radius:16px;
+    width:100%; max-width:480px;
+    max-height:80vh; display:flex; flex-direction:column;
+    box-shadow:0 16px 60px rgba(0,0,0,.22);
+    overflow:hidden;
+  }
+  .act-header {
+    background:var(--navy); color:white;
+    padding:16px 20px; display:flex;
+    align-items:center; justify-content:space-between;
+    border-left:5px solid var(--red); flex-shrink:0;
+  }
+  .act-header h3 { margin:0; font-size:14px; font-weight:900; letter-spacing:.3px; }
+  .act-header span { font-size:11px; opacity:.7; margin-top:2px; display:block; font-weight:600; }
+  .act-close {
+    background:rgba(255,255,255,.15); border:none; color:white;
+    width:30px; height:30px; border-radius:50%; font-size:16px;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    font-family:inherit; flex-shrink:0; transition:background .13s;
+  }
+  .act-close:hover { background:rgba(255,255,255,.28); }
+  .act-body { overflow-y:auto; flex:1; padding:0; }
+  .act-empty { padding:32px; text-align:center; color:#9CA3AF; font-size:13px; }
+  .act-session {
+    border-bottom:1px solid #F0F2F5; padding:14px 18px;
+    transition:background .1s;
+  }
+  .act-session:hover { background:#F7F9FC; }
+  .act-session:last-child { border-bottom:none; }
+  .act-session-top {
+    display:flex; align-items:flex-start;
+    justify-content:space-between; gap:12px; margin-bottom:6px;
+  }
+  .act-email { font-size:13px; font-weight:700; color:var(--navy); }
+  .act-time  { font-size:11px; color:#9CA3AF; font-weight:600; white-space:nowrap; flex-shrink:0; }
+  .act-sections { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+  .act-section-tag {
+    font-size:11px; font-weight:700; padding:2px 9px;
+    border-radius:999px; background:#EEF2FF; color:var(--navy);
+  }
+  .act-new { background:#DCFCE7 !important; color:#166534 !important; }
+  .act-footer {
+    padding:12px 18px; border-top:1px solid #F0F2F5;
+    display:flex; justify-content:space-between; align-items:center;
+    flex-shrink:0;
+  }
+  .act-clear-btn {
+    background:transparent; border:1px solid #FCA5A5; color:#991B1B;
+    border-radius:7px; padding:6px 14px; font-size:12px; font-weight:700;
+    cursor:pointer; font-family:inherit; transition:background .13s;
+  }
+  .act-clear-btn:hover { background:#FEE2E2; }
+  .act-count { font-size:11px; color:#9CA3AF; font-weight:600; }
+</style>
+
+<div id="actLogOverlay" class="act-hidden" onclick="actLogOverlayClick(event)">
+  <div id="actLogPanel">
+    <div class="act-header">
+      <div>
+        <h3>🔔 Viewer Activity Log</h3>
+        <span>Login history and sections visited</span>
+      </div>
+      <button class="act-close" onclick="actLogClose()">×</button>
+    </div>
+    <div class="act-body" id="actLogBody"></div>
+    <div class="act-footer">
+      <span class="act-count" id="actLogCount"></span>
+      <button class="act-clear-btn" onclick="actLogClear()">Clear All Logs</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  ACTIVITY LOG — fully self-contained
+// ════════════════════════════════════════════════════════════
+let actLogs       = [];          // loaded from Firestore
+let actUnseenCount = 0;
+let actCurrentSession = null;    // the current viewer's session being tracked
+const ACT_MAX_LOGS = 200;        // keep last 200 events
+
+// ── Firestore helpers ──
+async function actLoad() {
+  if (window.currentUserRole !== 'admin') return;
+  const { db, doc, getDoc } = window._firebase;
+  try {
+    const snap = await getDoc(doc(db, 'logs', 'loginEvents'));
+    if (snap.exists()) {
+      actLogs = snap.data().events || [];
+      actUnseenCount = actLogs.filter(e => !e.seen).length;
+      actUpdateBadge();
+    }
+  } catch(e) { /* no logs yet */ }
+}
+
+async function actSave() {
+  if (window.currentUserRole !== 'admin') return;
+  const { db, doc, setDoc } = window._firebase;
+  try {
+    await setDoc(doc(db, 'logs', 'loginEvents'), { events: actLogs });
+  } catch(e) { /* silent */ }
+}
+
+// ── Called when a VIEWER logs in ──
+async function actLogLogin(email) {
+  const { db, doc, arrayUnion, serverTimestamp } = window._firebase;
+  const ts = new Date().toISOString();
+  const session = {
+    id: Date.now().toString(36),
+    email,
+    loginTime: ts,
+    sections: [],
+    seen: false
+  };
+  actCurrentSession = session;
+
+  // Load existing logs, prepend new session, trim to max
+  try {
+    const { getDoc } = window._firebase;
+    const snap = await getDoc(doc(db, 'logs', 'loginEvents'));
+    const existing = snap.exists() ? (snap.data().events || []) : [];
+    const updated = [session, ...existing].slice(0, ACT_MAX_LOGS);
+    const { setDoc } = window._firebase;
+    await setDoc(doc(db, 'logs', 'loginEvents'), { events: updated });
+  } catch(e) { /* silent */ }
+}
+
+// ── Called when viewer visits a section ──
+async function actTrackSection(sectionName) {
+  if (window.currentUserRole !== 'viewer') return;
+  if (!actCurrentSession) return;
+  if (actCurrentSession.sections.includes(sectionName)) return; // dedupe
+  actCurrentSession.sections.push(sectionName);
+
+  // Update the session's entry in Firestore
+  try {
+    const { db, doc, getDoc, setDoc } = window._firebase;
+    const snap = await getDoc(doc(db, 'logs', 'loginEvents'));
+    if (!snap.exists()) return;
+    const events = snap.data().events || [];
+    const idx = events.findIndex(e => e.id === actCurrentSession.id);
+    if (idx !== -1) {
+      events[idx].sections = actCurrentSession.sections;
+      await setDoc(doc(db, 'logs', 'loginEvents'), { events });
+    }
+  } catch(e) { /* silent */ }
+}
+
+// ── Badge ──
+function actUpdateBadge() {
+  const badge = document.getElementById('actLogBadge');
+  if (!badge) return;
+  if (actUnseenCount > 0) {
+    badge.style.display = 'block';
+    badge.textContent = actUnseenCount > 9 ? '9+' : actUnseenCount;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ── Open / Close ──
+function actLogOpen() {
+  document.getElementById('actLogOverlay').classList.remove('act-hidden');
+  document.body.style.overflow = 'hidden';
+  actRender();
+  // Mark all as seen
+  actLogs.forEach(e => { e.seen = true; });
+  actUnseenCount = 0;
+  actUpdateBadge();
+  actSave();
+}
+
+function actLogClose() {
+  document.getElementById('actLogOverlay').classList.add('act-hidden');
+  document.body.style.overflow = '';
+}
+
+function actLogOverlayClick(e) {
+  if (e.target === document.getElementById('actLogOverlay')) actLogClose();
+}
+
+// ── Clear ──
+async function actLogClear() {
+  if (!confirm('Clear all activity logs?')) return;
+  actLogs = [];
+  actUnseenCount = 0;
+  actUpdateBadge();
+  actRender();
+  const { db, doc, setDoc } = window._firebase;
+  try { await setDoc(doc(db, 'logs', 'loginEvents'), { events: [] }); } catch(e) {}
+}
+
+// ── Render ──
+function actRender() {
+  const body = document.getElementById('actLogBody');
+  const countEl = document.getElementById('actLogCount');
+  if (!body) return;
+
+  // Reload from Firestore when opening
+  if (window.currentUserRole === 'admin') {
+    const { db, doc, getDoc } = window._firebase;
+    getDoc(doc(db, 'logs', 'loginEvents')).then(snap => {
+      if (snap.exists()) {
+        actLogs = snap.data().events || [];
+        actUnseenCount = actLogs.filter(e => !e.seen).length;
+      }
+      actRenderBody(body, countEl);
+    }).catch(() => actRenderBody(body, countEl));
+  } else {
+    actRenderBody(body, countEl);
+  }
+}
+
+function actRenderBody(body, countEl) {
+  if (countEl) countEl.textContent = actLogs.length + ' event' + (actLogs.length !== 1 ? 's' : '');
+  if (!actLogs.length) {
+    body.innerHTML = '<div class="act-empty">No activity yet.<br>Viewer logins will appear here.</div>';
+    return;
+  }
+  body.innerHTML = actLogs.map(e => {
+    const dt   = new Date(e.loginTime);
+    const date = dt.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+    const time = dt.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+    const sections = e.sections && e.sections.length
+      ? e.sections.map(s => `<span class="act-section-tag">${s}</span>`).join('')
+      : '<span style="font-size:11px;color:#C4CAD4;">No sections visited yet</span>';
+    const isNew = !e.seen ? 'style="border-left:3px solid var(--green);"' : '';
+    return `<div class="act-session" ${isNew}>
+      <div class="act-session-top">
+        <div>
+          <div class="act-email">${e.email}</div>
+          <div style="font-size:11px;color:#9CA3AF;margin-top:2px;">${date} at ${time}</div>
+        </div>
+        <span class="act-time">${actTimeAgo(dt)}</span>
+      </div>
+      <div class="act-sections">${sections}</div>
+    </div>`;
+  }).join('');
+}
+
+function actTimeAgo(date) {
+  const diff = Math.floor((Date.now() - date) / 1000);
+  if (diff < 60)   return 'Just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+
+// ── Poll for new logs every 60s (admin only) ──
+function actStartPolling() {
+  setInterval(async () => {
+    if (window.currentUserRole !== 'admin') return;
+    const { db, doc, getDoc } = window._firebase;
+    try {
+      const snap = await getDoc(doc(db, 'logs', 'loginEvents'));
+      if (!snap.exists()) return;
+      const events = snap.data().events || [];
+      const newUnseen = events.filter(e => !e.seen).length;
+      actLogs = events;
+      if (newUnseen !== actUnseenCount) {
+        actUnseenCount = newUnseen;
+        actUpdateBadge();
+      }
+    } catch(e) {}
+  }, 60000); // every 60 seconds
+}
+
+// ── Expose globals ──
+window.actLogOpen         = actLogOpen;
+window.actLogClose        = actLogClose;
+window.actLogOverlayClick = actLogOverlayClick;
+window.actLogClear        = actLogClear;
+window.actLoad            = actLoad;
+window.actLogLogin        = actLogLogin;
+window.actTrackSection    = actTrackSection;
+window.actStartPolling    = actStartPolling;
+</script>
+
 </body>
 </html>`;
 
@@ -2387,6 +2711,9 @@ function wrSwitchTab(tab) {
 function wrOpen() {
   wrActiveTab = 'weekly'; // always open on weekly tab
   document.getElementById('wrOverlay').classList.remove('wr-hidden');
+  if (window.currentUserRole === 'viewer') {
+    window.actTrackSection && window.actTrackSection('Weekly Report');
+  }
   document.body.style.overflow = 'hidden';
   // reset tab buttons
   document.querySelectorAll('.wr-tab').forEach(b => b.classList.toggle('active', b.id === 'wrTab-weekly'));
